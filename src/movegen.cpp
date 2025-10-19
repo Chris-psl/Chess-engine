@@ -1,0 +1,1 @@
+// This is a file that contains functions that generate legal moves for chess pieces based on the current board state.

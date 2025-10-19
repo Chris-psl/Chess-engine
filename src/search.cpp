@@ -1,0 +1,1 @@
+// The file uses min-max search algorithm to determine the best move for the current player in a chess game.

@@ -1,0 +1,1 @@
+// This file contains functions for parsing and creating FEN strings based on the given board state.

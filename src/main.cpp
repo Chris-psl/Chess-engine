@@ -1,3 +1,9 @@
+// main.cpp - Simple Chess GUI using SFML
+// This code sets up a basic chessboard, loads pieces from a FEN string,
+// allows piece movement via mouse clicks, and outputs moves in UCI format.
+// Requires SFML library. 
+
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <unordered_map>
