@@ -15,9 +15,9 @@ const int SQUARE_SIZE = 80;
 const int BOARD_SIZE = 8;
 
 std::unordered_map<char, std::string> pieceToFile = {
-    {'P', "wp.png"}, {'N', "wn.png"}, {'B', "wb.png"}, {'R', "wr.png"},
-    {'Q', "wq.png"}, {'K', "wk.png"}, {'p', "bp.png"}, {'n', "bn.png"},
-    {'b', "bb.png"}, {'r', "br.png"}, {'q', "bq.png"}, {'k', "bk.png"}
+    {'P', "wP.png"}, {'N', "wN.png"}, {'B', "wB.png"}, {'R', "wR.png"},
+    {'Q', "wQ.png"}, {'K', "wK.png"}, {'p', "bP.png"}, {'n', "bN.png"},
+    {'b', "bB.png"}, {'r', "bR.png"}, {'q', "bQ.png"}, {'k', "bK.png"}
 };
 
 struct Piece {
