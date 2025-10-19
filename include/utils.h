@@ -5,6 +5,8 @@
 
 // BoardState struct to hold bitboards and game state
 // Bitboards are 64-bit integers representing piece positions for exampl: lsbit corresponds to a1, next bit to b1, ..., msbit to h8.
+// Be aware that fen strings start from rank 8 (e.g. a8) to rank 1 (e.g. a1).
+
 /*
         a8 b8 c8 d8 e8 f8 g8 h8 <-- msb
         a7 b7 c7 d7 e7 f7 g7 h7

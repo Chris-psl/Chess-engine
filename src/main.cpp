@@ -3,6 +3,8 @@
 // allows piece movement via mouse clicks, and outputs moves in UCI format.
 // Requires SFML library. 
 
+// Uses the search.cpp engine for move generation and validation.
+
 
 #include <SFML/Graphics.hpp>
 #include <string>

@@ -1,16 +1,17 @@
 // This file contains functions for parsing and creating FEN strings based on the given board state.
+// Useful for debugging and testing.
 
 #include "utils.h"
 #include <sstream>
 #include <cctype>
 #include <unordered_map>
 
-// Helper to map FEN char to bitboard
+// Helper to map FEN char to bitboard, shifting a 1 to the correct square.
 inline uint64_t squareMask(int rank, int file) {
     return 1ULL << (rank * 8 + file);
 }
 
-// Convert FEN piece character to bitboard reference
+// Convert FEN piece character to bitboard reference, uses bitwise OR to set the piece.
 void setPieceBitboard(BoardState& state, char c, int rank, int file) {
     uint64_t mask = squareMask(rank, file);
     switch (c) {
@@ -61,11 +62,11 @@ BoardState parseFEN(const std::string& fen) {
 
     // 2️⃣ Active color
     std::getline(iss, token, ' ');
-    state.whiteToMove = (token == "w");
+    state.whiteToMove = (token == "w"); // 'w' for white to move, 'b' for black
 
     // 3️⃣ Castling rights
     std::getline(iss, token, ' ');
-    state.castlingRights = token; // e.g., "KQkq"
+    state.castlingRights = token;       // e.g., "KQkq"
 
     // 4️⃣ En passant target square
     std::getline(iss, token, ' ');
@@ -74,6 +75,9 @@ BoardState parseFEN(const std::string& fen) {
         char rankChar = token[1]; // 1-8
         int epFile = fileChar - 'a';
         int epRank = rankChar - '1';
+        if(epRank < 0 || epRank > 7 || epFile < 0 || epFile > 7) {
+            throw std::invalid_argument("Invalid en passant square in FEN");
+        }
         state.enPassantSquare = epRank * 8 + epFile;
     }
 
@@ -86,4 +90,55 @@ BoardState parseFEN(const std::string& fen) {
     state.fullmoveNumber = std::stoi(token);
 
     return state;
+}
+
+// Convert BoardState with bitboards back to FEN string
+std::string bitboardsToFEN(const BoardState& board) {
+    std::string fen;
+
+    // 1️⃣ Piece placement
+    for (int rank = 7; rank >= 0; rank--) {
+        int emptySquares = 0;
+        for (int file = 0; file < 8; file++) {
+            uint64_t mask = squareMask(rank, file);
+            if (board.whitePawns   & mask) fen += 'P';
+            else if (board.whiteKnights & mask) fen += 'N';
+            else if (board.whiteBishops & mask) fen += 'B';
+            else if (board.whiteRooks   & mask) fen += 'R';
+            else if (board.whiteQueens  & mask) fen += 'Q';
+            else if (board.whiteKing    & mask) fen += 'K';
+            else if (board.blackPawns   & mask) fen += 'p';
+            else if (board.blackKnights & mask) fen += 'n';
+            else if (board.blackBishops & mask) fen += 'b';
+            else if (board.blackRooks   & mask) fen += 'r';
+            else if (board.blackQueens  & mask) fen += 'q';
+            else if (board.blackKing    & mask) fen += 'k';
+            else emptySquares++;
+        }
+        if (emptySquares > 0) fen += std::to_string(emptySquares);
+        if (rank > 0) fen += '/';
+    }
+
+    // 2️⃣ Active color
+    fen += board.whiteToMove ? " w " : " b ";
+
+    // 3️⃣ Castling rights
+    fen += board.castlingRights + " ";
+
+    // 4️⃣ En passant target square
+    if (board.enPassantSquare != -1) {
+        int file = board.enPassantSquare % 8;
+        int rank = board.enPassantSquare / 8;
+        fen += std::string(1, 'a' + file) + std::to_string(rank + 1) + " ";
+    } else {
+        fen += "- ";
+    }
+
+    // 5️⃣ Halfmove clock
+    fen += std::to_string(board.halfmoveClock) + " ";
+
+    // 6️⃣ Fullmove number
+    fen += std::to_string(board.fullmoveNumber);
+
+    return fen;
 }
