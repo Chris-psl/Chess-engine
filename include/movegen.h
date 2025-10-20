@@ -30,6 +30,13 @@ struct MoveList {
     uint64_t blackAttacks = 0ULL;
 };
 
+/**
+ * Helper to add a move to the move list.
+ */
+auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
+MoveList result;
+result.moves.push_back({from, to, promo, capture, ep, castle});
+};
 
 /**
  * Helper macros for bitboard manipulation.

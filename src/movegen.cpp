@@ -21,7 +21,10 @@ static inline std::string squareToString(int sq) {
 // ============================================================================
 //  SECTION 1: GLOBAL ATTACK TABLES
 // ============================================================================
-
+/**
+ * Precomputed attack bitboards for each piece type on each square.
+ * - knightAttacks[sq]: squares attacked by a knight on `sq`
+ */
 uint64_t knightAttacks[64];
 uint64_t kingAttacks[64];
 uint64_t whitePawnAttacks[64];
@@ -115,7 +118,7 @@ uint64_t rayAttacks(int sq, uint64_t blockers, int dr, int df) {
     int r = sq / 8, f = sq % 8;
     while (true) {
         r += dr; f += df;
-        if (r < 0 || r > 7 || f < 0 || f > 7) break;
+        if (r < 0 || r > 7 || f < 0 || f > 7) break; // off board
         int s = r * 8 + f;
         SET_BIT(attacks, s);
         if (GET_BIT(blockers, s)) break; // stop at first piece
@@ -154,7 +157,7 @@ MoveList generateMoves(const BoardState& board) {
     // ------------------------------
     // Compute useful aggregate masks
     // ------------------------------
-    bool white = board.whiteToMove;
+    bool white = board.whiteToMove; // side to move
 
     uint64_t whitePieces = board.whitePawns | board.whiteKnights | board.whiteBishops |
                            board.whiteRooks | board.whiteQueens | board.whiteKing;
@@ -186,13 +189,8 @@ MoveList generateMoves(const BoardState& board) {
     }
 
     // ========================================================================
-    // 5B. Generate pseudo-legal moves for the side to move
+    // 5B. Generate legal moves for the side to move
     // ========================================================================
-
-    auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
-        result.moves.push_back({from, to, promo, capture, ep, castle});
-    };
-
     // ------------------------------
     // WHITE TO MOVE
     // ------------------------------
@@ -220,11 +218,13 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t caps = whitePawnAttacks[from] & oppPieces;
             while (caps) {
                 int to = POP_LSB(caps);
-                if (rank == 6)
-                    for (char p : {'Q','R','B','N'})
-                        addMove(from, to, p, true, false, false);
-                else
-                    addMove(from, to, '\0', true, false, false);
+                if(!(board.blackKing & (1ULL << to))) { // cannot capture king
+                    if (rank == 6)
+                        for (char p : {'Q','R','B','N'})
+                            addMove(from, to, p, true, false, false);
+                    else
+                        addMove(from, to, '\0', true, false, false);
+                }
             }
         }
 
@@ -235,7 +235,9 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t moves = knightAttacks[from] & ~ownPieces;
             while (moves) {
                 int to = POP_LSB(moves);
-                addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
+                if(!(board.blackKing & (1ULL << to))){ // cannot capture king
+                    addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
+                }
             }
         }
 
@@ -247,7 +249,9 @@ MoveList generateMoves(const BoardState& board) {
                 uint64_t attacks = attackFn(from, allPieces) & ~ownPieces;
                 while (attacks) {
                     int to = POP_LSB(attacks);
-                    addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
+                    if(!(board.blackKing & (1ULL << to))) { // cannot capture king
+                        addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
+                    }
                 }
             }
         };
@@ -260,7 +264,9 @@ MoveList generateMoves(const BoardState& board) {
         uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
         while (kingMoves) {
             int to = POP_LSB(kingMoves);
-            addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+            if(!(board.blackKing & (1ULL << to))){ // cannot capture king
+                addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+            }
         }
     }
 
@@ -291,11 +297,13 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t caps = blackPawnAttacks[from] & oppPieces;
             while (caps) {
                 int to = POP_LSB(caps);
-                if (rank == 1)
-                    for (char p : {'q','r','b','n'})
-                        addMove(from, to, p, true, false, false);
-                else
-                    addMove(from, to, '\0', true, false, false);
+                if (!(board.whiteKing & 1ULL<<to)){
+                    if (rank == 1)
+                        for (char p : {'q','r','b','n'})
+                            addMove(from, to, p, true, false, false);
+                    else
+                        addMove(from, to, '\0', true, false, false);
+                }
             }
         }
 
@@ -306,6 +314,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t moves = knightAttacks[from] & ~ownPieces;
             while (moves) {
                 int to = POP_LSB(moves);
+                if(!(board.whiteKing & 1ULL<< to))
                 addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
             }
         }
@@ -318,6 +327,7 @@ MoveList generateMoves(const BoardState& board) {
                 uint64_t attacks = attackFn(from, allPieces) & ~ownPieces;
                 while (attacks) {
                     int to = POP_LSB(attacks);
+                    if(!(board.whiteKing & 1ULL<< to))
                     addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
                 }
             }
@@ -331,6 +341,7 @@ MoveList generateMoves(const BoardState& board) {
         uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
         while (kingMoves) {
             int to = POP_LSB(kingMoves);
+            if(!(board.whiteKing & 1ULL<< to))
             addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
         }
     }
