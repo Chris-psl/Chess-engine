@@ -1,15 +1,12 @@
+// movegen.cpp - Move generation for chess engine
+// reminder: lsb = lowerest square
+
+
 #include "movegen.h"
 #include <cassert>
 #include <array>
 #include <iostream>
 
-// ============================================================================
-//  SECTION 1: HELPER MACROS AND INLINE FUNCTIONS
-// ============================================================================
-
-#define SET_BIT(bb, sq) ((bb) |= (1ULL << (sq)))
-#define GET_BIT(bb, sq) (((bb) >> (sq)) & 1ULL)
-#define POP_LSB(bb) (__builtin_ctzll(bb)); bb &= ((bb) - 1)
 
 /**
  * Converts a board index (0..63) to file and rank.
@@ -22,7 +19,7 @@ static inline std::string squareToString(int sq) {
 }
 
 // ============================================================================
-//  SECTION 2: GLOBAL ATTACK TABLES
+//  SECTION 1: GLOBAL ATTACK TABLES
 // ============================================================================
 
 uint64_t knightAttacks[64];
@@ -31,7 +28,7 @@ uint64_t whitePawnAttacks[64];
 uint64_t blackPawnAttacks[64];
 
 // ============================================================================
-//  SECTION 3: PRECOMPUTED ATTACK MASK GENERATORS
+//  SECTION 2: PRECOMPUTED ATTACK MASK GENERATORS
 // ============================================================================
 
 /**
@@ -105,7 +102,7 @@ void initAttackTables() {
 }
 
 // ============================================================================
-//  SECTION 4: SLIDING PIECE ATTACK GENERATION (RAYS)
+//  SECTION 3: SLIDING PIECE ATTACK GENERATION (RAYS)
 // ============================================================================
 
 /**
@@ -148,7 +145,7 @@ uint64_t queenAttacks(int sq, uint64_t blockers) {
 }
 
 // ============================================================================
-//  SECTION 5: CORE MOVE GENERATION
+//  SECTION 4: CORE MOVE GENERATION
 // ============================================================================
 
 MoveList generateMoves(const BoardState& board) {

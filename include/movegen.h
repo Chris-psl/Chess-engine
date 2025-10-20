@@ -30,6 +30,16 @@ struct MoveList {
     uint64_t blackAttacks = 0ULL;
 };
 
+
+/**
+ * Helper macros for bitboard manipulation.
+ */
+
+#define SET_BIT(bitboard, sq) ((bitboard) |= (1ULL << (sq)))
+#define GET_BIT(bitboard, sq) (((bitboard) >> (sq)) & 1ULL)
+#define POP_LSB(bitboard) (__builtin_ctzll(bitboard)); bitboard &= ((bitboard) - 1)
+
+
 /**
  * Initializes all precomputed attack tables (knight, king, pawn).
  * Must be called once before generating moves.
