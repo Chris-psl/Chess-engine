@@ -209,8 +209,12 @@ MoveList generateMoves(const BoardState& board) {
                         addMove(from, oneStep, p, false, false, false);
                 } else {
                     addMove(from, oneStep, '\0', false, false, false);
-                    if (rank == 1 && !(allPieces & (1ULL << (from + 16))))
+                    if (rank == 1 && !(allPieces & (1ULL << (from + 16)))){
                         addMove(from, from + 16, '\0', false, false, false);
+
+                        // en passant target square setup
+                        
+                    }
                 }
             }
 
