@@ -3,6 +3,7 @@
 
 
 #include "movegen.h"
+#include "parsing.h"
 #include <cassert>
 #include <array>
 #include <iostream>
@@ -12,7 +13,7 @@
  * Converts a board index (0..63) to file and rank.
  * Example: squareToCoords(0) -> (a1), 63 -> (h8)
  */
-static inline std::string squareToString(int sq) {
+std::string squareToString(int sq) {
     char file = 'a' + (sq % 8);
     char rank = '1' + (sq / 8);
     return {file, rank};
@@ -191,6 +192,14 @@ MoveList generateMoves(const BoardState& board) {
     // ========================================================================
     // 5B. Generate legal moves for the side to move
     // ========================================================================
+
+    /**
+     * Helper to add a move to the move list.
+     */
+    auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
+    result.moves.push_back({from, to, promo, capture, ep, castle});
+    };
+    
     // ------------------------------
     // WHITE TO MOVE
     // ------------------------------
@@ -204,16 +213,14 @@ MoveList generateMoves(const BoardState& board) {
             // Forward moves
             int oneStep = from + 8;
             if (!(allPieces & (1ULL << oneStep))) {
+                assert(oneStep < 64);
                 if (rank == 6) {
                     for (char p : {'Q','R','B','N'})
                         addMove(from, oneStep, p, false, false, false);
                 } else {
                     addMove(from, oneStep, '\0', false, false, false);
                     if (rank == 1 && !(allPieces & (1ULL << (from + 16)))){
-                        addMove(from, from + 16, '\0', false, false, false);
-
-                        // en passant target square setup
-                        
+                        addMove(from, from + 16, '\0', false, false, false);            
                     }
                 }
             }
@@ -234,6 +241,7 @@ MoveList generateMoves(const BoardState& board) {
 
         // ---- Knights ----
         uint64_t knights = board.whiteKnights;
+        printBitboard(knights);
         while (knights) {
             int from = POP_LSB(knights);
             uint64_t moves = knightAttacks[from] & ~ownPieces;
@@ -286,6 +294,7 @@ MoveList generateMoves(const BoardState& board) {
 
             // Forward moves
             int oneStep = from - 8;
+            assert(oneStep >= 0);
             if (!(allPieces & (1ULL << oneStep))) {
                 if (rank == 1) {
                     for (char p : {'q','r','b','n'})
@@ -313,13 +322,13 @@ MoveList generateMoves(const BoardState& board) {
 
         // ---- Knights ----
         uint64_t knights = board.blackKnights;
-        while (knights) {
+        while (knights ) {
             int from = POP_LSB(knights);
             uint64_t moves = knightAttacks[from] & ~ownPieces;
             while (moves) {
                 int to = POP_LSB(moves);
                 if(!(board.whiteKing & 1ULL<< to))
-                addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
+                    addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
             }
         }
 

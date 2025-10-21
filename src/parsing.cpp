@@ -1,6 +1,7 @@
 // This file contains functions for parsing and creating FEN strings based on the given board state.
 // Useful for debugging and testing.
 
+#include "parsing.h"
 #include "utils.h"
 #include <sstream>
 #include <cctype>

@@ -8,11 +8,13 @@ FEN: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1 <--------------
 */
 #pragma once
 #include "tools.h"
+#include "utils.h"
 #include <string>
 #include <sstream>
 
 // Parse FEN string into BoardState with bitboards
-inline BoardState parseFEN(const std::string& fen) {}
+BoardState parseFEN(const std::string& fen);
 
 // Convert BoardState with bitboards back to FEN string
-inline std::string bitboardsToFEN(const BoardState& board) {}
+std::string bitboardsToFEN(const BoardState& board);
+

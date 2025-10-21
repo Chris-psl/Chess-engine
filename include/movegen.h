@@ -30,13 +30,6 @@ struct MoveList {
     uint64_t blackAttacks = 0ULL;
 };
 
-/**
- * Helper to add a move to the move list.
- */
-auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
-MoveList result;
-result.moves.push_back({from, to, promo, capture, ep, castle});
-};
 
 /**
  * Helper macros for bitboard manipulation.
@@ -44,8 +37,11 @@ result.moves.push_back({from, to, promo, capture, ep, castle});
 
 #define SET_BIT(bitboard, sq) ((bitboard) |= (1ULL << (sq)))
 #define GET_BIT(bitboard, sq) (((bitboard) >> (sq)) & 1ULL)
-#define POP_LSB(bitboard) (__builtin_ctzll(bitboard)); bitboard &= ((bitboard) - 1)
-
+#define POP_LSB(bb) ({ \
+    int lsb = __builtin_ctzll(bb); \
+    bb &= bb - 1; \
+    lsb; \
+})
 
 /**
  * Initializes all precomputed attack tables (knight, king, pawn).
@@ -56,5 +52,8 @@ void initAttackTables();
 /**
  * Generates all pseudo-legal moves for the side to move.
  * Also computes total attack masks for both sides.
+ * Most moves are legal, missing en-passant, castling and king exposure checks.
  */
 MoveList generateMoves(const BoardState& board);
+
+std::string squareToString(int sq);
