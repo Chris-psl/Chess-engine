@@ -1,6 +1,7 @@
 // here will be implemented the hub for the engine functionalities
 // engine.cpp - Chess engine core functionalities
-// 8/8/8/3N4/8/8/8/8 w - - 0 1
+// 8/8/8/3K4/8/8/8/8 w - - 0 1
+// 8/pppppppp/8/8/8/8/PPPPPPPP/8 b KQkq - 0 1
 
 
 //#include "engine.h"
@@ -45,7 +46,17 @@ int main() {
         board = parseFEN(fenInput);
         initAttackTables();
         MoveList moves = generateMoves(board);
-        std::cout << "Generated " << moves.moves.size() << " moves.\n";
+        bool anyCapture = false;
+        for (const auto& m : moves.moves) {
+            if (m.isCapture) {
+                anyCapture = true;
+                break;
+            }
+        }
+
+        std::cout << "Generated " << moves.moves.size()<< " moves, any capture: " << (anyCapture ? "yes" : "no") << ".\n";
+
+
         while(moves.moves.size() > 0){
             Move m = moves.moves.back();
             moves.moves.pop_back();

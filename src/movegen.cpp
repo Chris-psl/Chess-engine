@@ -4,6 +4,7 @@
 
 #include "movegen.h"
 #include "parsing.h"
+#include <bitset>
 #include <cassert>
 #include <array>
 #include <iostream>
@@ -14,8 +15,8 @@
  * Example: squareToCoords(0) -> (a1), 63 -> (h8)
  */
 std::string squareToString(int sq) {
-    char file = 'a' + (sq % 8);
-    char rank = '1' + (sq / 8);
+    char file = 'a' + (sq % 8); // mod
+    char rank = '1' + (sq / 8); // div
     return {file, rank};
 }
 
@@ -242,6 +243,7 @@ MoveList generateMoves(const BoardState& board) {
         // ---- Knights ----
         uint64_t knights = board.whiteKnights;
         printBitboard(knights);
+        std::cout << "Binary representation:\n" << std::bitset<64>(knights) << "\n";
         while (knights) {
             int from = POP_LSB(knights);
             uint64_t moves = knightAttacks[from] & ~ownPieces;
@@ -272,14 +274,17 @@ MoveList generateMoves(const BoardState& board) {
         genSliding(board.whiteQueens, queenAttacks);
 
         // ---- King ----
-        int kingSq = __builtin_ctzll(board.whiteKing);
-        uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
-        while (kingMoves) {
-            int to = POP_LSB(kingMoves);
-            if(!(board.blackKing & (1ULL << to))){ // cannot capture king
-                addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+        if(board.whiteKing != 0){
+            int kingSq = __builtin_ctzll(board.whiteKing);
+            uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
+            while (kingMoves) {
+                int to = POP_LSB(kingMoves);
+                if(!(board.blackKing & (1ULL << to))){ // cannot capture king
+                    addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+                }
             }
         }
+        
     }
 
     // ------------------------------
@@ -350,12 +355,14 @@ MoveList generateMoves(const BoardState& board) {
         genSliding(board.blackQueens, queenAttacks);
 
         // ---- King ----
-        int kingSq = __builtin_ctzll(board.blackKing);
-        uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
-        while (kingMoves) {
-            int to = POP_LSB(kingMoves);
-            if(!(board.whiteKing & 1ULL<< to))
-            addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+        if(board.blackKing != 0){
+            int kingSq = __builtin_ctzll(board.blackKing);
+            uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
+            while (kingMoves) {
+                int to = POP_LSB(kingMoves);
+                if(!(board.whiteKing & 1ULL<< to))
+                addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
+            }
         }
     }
 
