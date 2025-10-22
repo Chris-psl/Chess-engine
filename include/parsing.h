@@ -17,4 +17,3 @@ BoardState parseFEN(const std::string& fen);
 
 // Convert BoardState with bitboards back to FEN string
 std::string bitboardsToFEN(const BoardState& board);
-

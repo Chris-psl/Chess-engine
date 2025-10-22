@@ -343,6 +343,9 @@ MoveList generateMoves(const BoardState& board) {
             }
         }
 
+        // Function to add castling moves
+        
+
         // ---- Knights ----
         uint64_t knights = board.blackKnights;
         while (knights ) {
@@ -381,44 +384,6 @@ MoveList generateMoves(const BoardState& board) {
                 if(!(board.whiteKing & 1ULL<< to))
                 addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
             }
-        }
-    }
-
-    return result;
-}
-
-
-// Function to update en passant square after a move
-MoveList updateEnPassantSquare(BoardState& board, const Move& move) {
-    // Reset en passant square by default
-    board.enPassantSquare = -1;
-    MoveList result;
-    
-    /**
-     * Helper to add a move to the move list.
-     */
-    
-    // auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
-    // result.moves.push_back({from, to, promo, capture, ep, castle});
-    // };
-
-
-    // Check if the move is a two-square pawn advance
-    if (board.whiteToMove) {
-        // White to move
-        if (GET_BIT(board.whitePawns, move.from) && (move.to - move.from) == 16) {
-            board.enPassantSquare = move.from + 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
-        }
-    } else {
-        // Black to move
-        if (GET_BIT(board.blackPawns, move.from) && (move.from - move.to) == 16) {
-            board.enPassantSquare = move.from - 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
         }
     }
 

@@ -1,7 +1,7 @@
 // here will be implemented the hub for the engine functionalities
 // engine.cpp - Chess engine core functionalities
 // 8/8/4N3/3K4/8/8/8/8 w - - 0 1
-// 8/pppppppp/8/8/8/8/PPPPPPPP/8 b KQkq - 0 1
+// 8/pppppppp/8/4Q3/8/8/PPPPPPPP/8 w KQkq - 0 1
 
 
 //#include "engine.h"
@@ -25,13 +25,15 @@ int main() {
     std::getline(std::cin, command);
     
     if(command == "1"){
+        // Example usage: parse FEN and generate moves
         board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Another position
         //board = parseFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"); // Another position
         
+        // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
 
-
+        // Print generated moves
         std::cout << "Generated " << moves.moves.size() << " moves.\n";
         while(moves.moves.size() > 0){
             Move m = moves.moves.back();
@@ -43,23 +45,25 @@ int main() {
         }
     }
     else if(command == "2"){
+        // Example usage: parse FEN from user input and generate moves
         std::cout << "Enter FEN string: ";
         std::string fenInput;
         std::getline(std::cin, fenInput);
         board = parseFEN(fenInput);
+
+        // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
-        bool anyCapture = false;
+
+        // Check if any move is a capture
+        int anyCapture = 0;
         for (const auto& m : moves.moves) {
             if (m.isCapture) {
-                anyCapture = true;
-                break;
+                anyCapture++;
             }
         }
-
-        std::cout << "Generated " << moves.moves.size()<< " moves, any capture: " << (anyCapture ? "yes" : "no") << ".\n";
-
-
+        
+        std::cout << "Generated " << moves.moves.size()<< " moves, any capture: " << anyCapture << ".\n";
         while(moves.moves.size() > 0){
             Move m = moves.moves.back();
             moves.moves.pop_back();
@@ -68,11 +72,38 @@ int main() {
                 std::cout << m.promotion;
             std::cout << "\n";
         }
-    }
 
-    // while (true) {
-    //     if (command == "quit") break;
-    //     MoveList moves = generateMoves(board);
-        
-    // }
+
+    }else if (command == "3"){
+        // Example usage: simple engine loop
+        bool white = true;
+        if(white == true)board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Starting position
+        else board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"); // Starting position
+
+        // Initialize attack tables and generate moves
+        initAttackTables();
+        MoveList moves = generateMoves(board);
+        bool playing = true;
+
+        // Game loop
+        while (moves.moves.size() > 0) {
+            // Apply the move
+
+            
+            // Evaluate current position
+            //int score = evaluateBoard(board);
+
+            // Generate moves for current position
+            MoveList moves = generateMoves(board);
+
+            // New round
+            std::cout << "Score calculated, continue;\n";
+            std::cin >> playing;
+            if (!playing){
+                std::cout << "Game loop broken.\n";
+                break;
+            }
+        }
+    }
 }
+
