@@ -11,10 +11,9 @@
  * 
  * Must be called after making a move to update the board state.
  */
-MoveList updateEnPassantSquare(BoardState& board, const Move& move) {
+void updateEnPassantSquare(BoardState& board, const Move& move) {
     // Reset en passant square by default
-    board.enPassantSquare = -1;
-    MoveList result;
+    //board.enPassantSquare = -1;
    
     // Check if the move is a two-square pawn advance
     if (board.whiteToMove) {
@@ -34,8 +33,6 @@ MoveList updateEnPassantSquare(BoardState& board, const Move& move) {
             board.enPassantSquare = -1;
         }
     }
-
-    return result;
 }
 
 /**
@@ -50,6 +47,9 @@ void removeRight(std::string& rights, char c) {
 
 void updateCastlingRights(BoardState& board, const Move& move) {
     bool white = board.whiteToMove;
+
+    if (board.castlingRights == "no_castling") return;
+    
 
     // 1. If the side's king moved — remove both rights
     if ((white && GET_BIT(board.whiteKing, move.from)) || (!white && GET_BIT(board.blackKing, move.from))) {
@@ -78,6 +78,9 @@ void updateCastlingRights(BoardState& board, const Move& move) {
             if (move.to == 7) removeRight(board.castlingRights, 'K');
         }
     }
+
+    if(board.castlingRights.empty())
+        board.castlingRights = "no_castling";
 }
 
 

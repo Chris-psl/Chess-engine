@@ -242,17 +242,48 @@ MoveList generateMoves(const BoardState& board) {
 
         // En passant captures
         if (board.enPassantSquare != -1) {
-            uint64_t epCapturers = whitePawnAttacks[board.enPassantSquare] & board.whitePawns;
-            while (epCapturers) {
-                int from = POP_LSB(epCapturers);
-                addMove(from, board.enPassantSquare, '\0', true, true, false);
+            int from1 = board.enPassantSquare - 9;
+            int from2 = board.enPassantSquare - 7;
+            
+            if(GET_BIT(board.whitePawns, from1)) {
+                addMove(from1, board.enPassantSquare, '\0', true, true, false);
+            }
+            if(GET_BIT(board.whitePawns, from2)) {
+                addMove(from2, board.enPassantSquare, '\0', true, true, false);
             }
         }
 
+
+        // Function to add castling moves
+        if(board.castlingRights != "no_castling") {
+            int kingFrom = __builtin_ctzll(board.whiteKing);
+            // Kingside castling
+            if (board.castlingRights.find('K') != std::string::npos) {
+                if (!GET_BIT(allPieces, 5) && !GET_BIT(allPieces, 6)) {
+                    // Check squares are not under attack
+                    if (!(result.blackAttacks & (1ULL << 4)) &&
+                        !(result.blackAttacks & (1ULL << 5)) &&
+                        !(result.blackAttacks & (1ULL << 6))) {
+                        addMove(kingFrom, 6, '\0', false, false, true);
+                    }
+                }
+            }
+            // Queenside castling
+            if (board.castlingRights.find('Q') != std::string::npos) {
+                if (!GET_BIT(allPieces, 1) && !GET_BIT(allPieces, 2) && !GET_BIT(allPieces, 3)) {
+                    // Check squares are not under attack
+                    if (!(result.blackAttacks & (1ULL << 4)) &&
+                        !(result.blackAttacks & (1ULL << 3)) &&
+                        !(result.blackAttacks & (1ULL << 2))) {
+                        addMove(kingFrom, 2, '\0', false, false, true);
+                    }
+                }
+            }
+        }
+
+
         // ---- Knights ----
         uint64_t knights = board.whiteKnights;
-        printBitboard(knights);
-        std::cout << "Binary representation:\n" << std::bitset<64>(knights) << "\n";
         while (knights) {
             int from = POP_LSB(knights);
             uint64_t moves = knightAttacks[from] & ~ownPieces;
@@ -336,15 +367,43 @@ MoveList generateMoves(const BoardState& board) {
 
         // En passant captures
         if (board.enPassantSquare != -1) {
-            uint64_t epCapturers = blackPawnAttacks[board.enPassantSquare] & board.blackPawns;
-            while (epCapturers) {
-                int from = POP_LSB(epCapturers);
-                addMove(from, board.enPassantSquare, '\0', true, true, false);
+            int from1 = board.enPassantSquare + 9;
+            int from2 = board.enPassantSquare + 7;
+            
+            if(GET_BIT(board.blackPawns, from1)) {
+                addMove(from1, board.enPassantSquare, '\0', true, true, false);
+            }
+            if(GET_BIT(board.blackPawns, from2)) {
+                addMove(from2, board.enPassantSquare, '\0', true, true, false);
             }
         }
 
         // Function to add castling moves
-        
+        if(board.castlingRights != "no_castling") {
+            int kingFrom = __builtin_ctzll(board.blackKing);
+            // Kingside castling
+            if (board.castlingRights.find('k') != std::string::npos) {
+                if (!GET_BIT(allPieces, 61) && !GET_BIT(allPieces, 62)) {
+                    // Check squares are not under attack
+                    if (!(result.whiteAttacks & (1ULL << 60)) &&
+                        !(result.whiteAttacks & (1ULL << 61)) &&
+                        !(result.whiteAttacks & (1ULL << 62))) {
+                        addMove(kingFrom, 62, '\0', false, false, true);
+                    }
+                }
+            }
+            // Queenside castling
+            if (board.castlingRights.find('q') != std::string::npos) {
+                if (!GET_BIT(allPieces, 57) && !GET_BIT(allPieces, 58) && !GET_BIT(allPieces, 59)) {
+                    // Check squares are not under attack
+                    if (!(result.whiteAttacks & (1ULL << 60)) &&
+                        !(result.whiteAttacks & (1ULL << 59)) &&
+                        !(result.whiteAttacks & (1ULL << 58))) {
+                        addMove(kingFrom, 58, '\0', false, false, true);
+                    }
+                }
+            }
+        }
 
         // ---- Knights ----
         uint64_t knights = board.blackKnights;
