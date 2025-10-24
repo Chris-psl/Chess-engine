@@ -1,3 +1,5 @@
+// Adds utility functions for printing bitboards and board states
+
 #pragma once
 #include <string>
 #include <cstdint>
@@ -26,7 +28,7 @@ inline void printBoard(const BoardState& board) {
     for (int rank = 7; rank >= 0; --rank) {
         std::cout << rank + 1 << " "; // print rank numbers
         for (int file = 0; file < 8; ++file) {
-            std::cout << static_cast<char>('a' + file) << " "; // print file letters
+            //std::cout << static_cast<char>('a' + file) << " "; // print file letters
             int sq = rank * 8 + file;
             char pieceChar = '.';
             if (board.whitePawns   & (1ULL << sq)) pieceChar = 'P';
