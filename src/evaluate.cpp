@@ -6,6 +6,48 @@
 #include <array>
 #include <iostream>
 
+
+enum GamePhase { OPENING, MIDGAME, ENDGAME };
+
+GamePhase determine_game_phase(const BoardState& board) {
+    // Συντελεστές για κάθε κομμάτι (βαρύτητα)
+    const int queenWeight = 9;
+    const int rookWeight = 5;
+    const int bishopWeight = 3;
+    const int knightWeight = 3;
+    const int pawnWeight = 1;
+
+    int totalMaterial = 0;
+
+    totalMaterial += __builtin_popcountll(board.whiteQueens) * queenWeight;
+    totalMaterial += __builtin_popcountll(board.blackQueens) * queenWeight;
+
+    totalMaterial += __builtin_popcountll(board.whiteRooks) * rookWeight;
+    totalMaterial += __builtin_popcountll(board.blackRooks) * rookWeight;
+
+    totalMaterial += __builtin_popcountll(board.whiteBishops) * bishopWeight;
+    totalMaterial += __builtin_popcountll(board.blackBishops) * bishopWeight;
+
+    totalMaterial += __builtin_popcountll(board.whiteKnights) * knightWeight;
+    totalMaterial += __builtin_popcountll(board.blackKnights) * knightWeight;
+
+    totalMaterial += __builtin_popcountll(board.whitePawns) * pawnWeight;
+    totalMaterial += __builtin_popcountll(board.blackPawns) * pawnWeight;
+
+    // Αρχικό υλικό για σύγκριση (βαθμολογημένο)
+    const int startingMaterial = 39; // 2*9 + 4*5 + 4*3 + 16*1 = 39
+
+    double materialRatio = (double)totalMaterial / startingMaterial;
+
+    if (materialRatio > 0.75)
+        return OPENING;
+    else if (materialRatio > 0.25)
+        return MIDGAME;
+    else
+        return ENDGAME;
+}
+
+
 int evaluateBoard(const BoardState& board) {
     int score = 0;
     int score = material_score(board);
@@ -45,9 +87,10 @@ int material_score(const BoardState& board) {
 }
 
 
-int piece_square_table_score(const BoardState& board) {
+int piece_square_table_score(const BoardState& board, GamePhase phase) {
     // Placeholder for piece-square table evaluation
     // first we get the white pawns and check if their position is good or bad
+    if (phase == MIDGAME) {
     static const int pawnTable_mid[64] = {
      0,  0,  0,  0,  0,  0,  0,  0,
     50, 50, 50, 50, 50, 50, 50, 50,
@@ -180,7 +223,11 @@ int piece_square_table_score(const BoardState& board) {
         int sq = POP_LSB(black_king);
         score -= king_table_mid[63 - sq]; // μαύρο
     }
+    return score;
 
+}
+  else if (phase == ENDGAME) {
+    int score = 0;
     int pawn_table_end[64] = {
         0,  0,  0,  0,  0,  0,  0,  0,
        50, 50, 50, 50, 50, 50, 50, 50,
@@ -324,4 +371,6 @@ int piece_square_table_score(const BoardState& board) {
     }
 
     return score;
+
+  }
 }
