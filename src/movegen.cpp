@@ -4,6 +4,7 @@
 
 #include "movegen.h"
 #include "parsing.h"
+#include "updateBoard.h"
 #include <bitset>
 #include <cassert>
 #include <array>
@@ -148,6 +149,7 @@ uint64_t rookAttacks(int sq, uint64_t blockers) {
 uint64_t queenAttacks(int sq, uint64_t blockers) {
     return rookAttacks(sq, blockers) | bishopAttacks(sq, blockers);
 }
+
 
 // ============================================================================
 //  SECTION 4: CORE MOVE GENERATION
@@ -447,4 +449,46 @@ MoveList generateMoves(const BoardState& board) {
     }
 
     return result;
+}
+
+/**
+ * Function that ensures the king is not exposed to check after move generation.
+ */
+int isLegalMoveState(const BoardState& board) {
+    // Gets the position of the king of the side to move
+    bool white = board.whiteToMove;
+    int kingSq = white ? __builtin_ctzll(board.whiteKing) : __builtin_ctzll(board.blackKing);
+
+    // iterate through all opponent pieces and see if any attack the king
+    uint64_t oppPieces = white ? (board.blackPawns | board.blackKnights | board.blackBishops |
+                                 board.blackRooks | board.blackQueens | board.blackKing)
+                              : (board.whitePawns | board.whiteKnights | board.whiteBishops |
+                                 board.whiteRooks | board.whiteQueens | board.whiteKing);
+    uint64_t allPieces = (board.whitePawns | board.whiteKnights | board.whiteBishops |
+                          board.whiteRooks | board.whiteQueens | board.whiteKing |
+                          board.blackPawns | board.blackKnights | board.blackBishops |
+                          board.blackRooks | board.blackQueens | board.blackKing);
+    uint64_t attackers = 0ULL;
+    uint64_t bb = oppPieces;;
+    while (bb) {
+        int from = POP_LSB(bb);
+        // Determine piece type and compute attacks
+        if (GET_BIT(white ? board.blackPawns : board.whitePawns, from)) {
+            uint64_t attacks = white ? blackPawnAttacks[from] : whitePawnAttacks[from];
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackKnights : board.whiteKnights, from)) {
+            uint64_t attacks = knightAttacks[from];
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackBishops : board.whiteBishops, from)) {
+            uint64_t attacks = bishopAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackRooks : board.whiteRooks, from)) {
+            uint64_t attacks = rookAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackQueens : board.whiteQueens, from)) {
+            uint64_t attacks = queenAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        }
+    }
+    return true; // King is safe
 }

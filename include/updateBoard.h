@@ -30,5 +30,3 @@ void updateGameState(BoardState& board, const Move& move);
  * Handles captures, promotions, en passant, and castling rights.
  */
 void applyMove(BoardState& board, const Move& move);
-
-

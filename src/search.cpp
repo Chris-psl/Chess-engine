@@ -19,6 +19,8 @@
 /**
  * minimax - Implements the Min-Max algorithm to evaluate the best move.
  * @board: Current state of the chess board.
+ * @depth: Depth of the search tree.
+ * maximizingPlayer: True for the AI player, false for the opponent.
  */
 int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {
     if (depth == 0) {
@@ -27,6 +29,7 @@ int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {
     }
 
     // Generate all possible moves for the current player
+    initAttackTables();
     MoveList moves = generateMoves(board);
 
     if (isMaximizingPlayer) {

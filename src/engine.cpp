@@ -15,6 +15,7 @@
 #include "parsing.h"
 #include "updateBoard.h"
 #include "tools.h"
+#include "search.h"
 
 
 // ============================================================================
@@ -30,26 +31,8 @@ int main() {
     std::getline(std::cin, command);
     
     if(command == "1"){
-        // Example usage: parse FEN and generate moves
-        board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Another position
-        //board = parseFEN("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3"); // Another position
-        
-        // Initialize attack tables and generate moves
-        initAttackTables();
-        MoveList moves = generateMoves(board);
+        //////////////////////// Functionality test ////////////////////////
 
-        // Print generated moves
-        std::cout << "Generated " << moves.moves.size() << " moves.\n";
-        while(moves.moves.size() > 0){
-            Move m = moves.moves.back();
-            moves.moves.pop_back();
-            std::cout << squareToString(m.from) << squareToString(m.to);
-            if(m.promotion != '\0')
-                std::cout << m.promotion;
-            std::cout << "\n";
-        }
-    }
-    else if(command == "2"){
         // Example usage: parse FEN from user input and generate moves
         std::cout << "Enter FEN string: ";
         std::string fenInput;
@@ -116,36 +99,28 @@ int main() {
             printBoard(board);
         }
 
-    }else if (command == "3"){
+    }else if (command == "2"){
+        //////////////////////// Engine test ////////////////////////
+
         // Example usage: simple engine loop
-        bool white = true;
-        if(white == true)board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Starting position
-        else board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1"); // Starting position
+        board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Starting position
 
         // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
-        bool playing = true;
 
-        // Game loop
-        while (moves.moves.size() > 0) {
-            // Apply the move
+        while(moves.moves.size() > 0){
+            // Apply each move and evaluate using minimax
+           BoardState newBoard = board;
+           Move m = moves.moves.back();
+           moves.moves.pop_back();
+           applyMove(newBoard, m);
+           int move = minimax(newBoard, 2, false);
 
-            
-            // Evaluate current position
-            //int score = evaluateBoard(board);
-
-            // Generate moves for current position
-            MoveList moves = generateMoves(board);
-
-            // New round
-            std::cout << "Score calculated, continue;\n";
-            std::cin >> playing;
-            if (!playing){
-                std::cout << "Game loop broken.\n";
-                break;
-            }
+           // Print move and its evaluation
+           std::cout << "Move: " << squareToString(m.from) << squareToString(m.to) << " Evaluation: " << move << "\n";
         }
     }
+    return 0;
 }
 
