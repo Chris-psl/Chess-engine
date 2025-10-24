@@ -134,7 +134,7 @@ int evaluateBoard(const BoardState& board) {
     int kingScore = king_safety_score(board, phase);
 
     // --- 6. Κινητικότητα ---
-    //int mobilityScore = mobility_score(board, phase); // υποθέτουμε ότι η συνάρτηση υλοποιείται on pending 
+    int mobilityScore = mobility_score(board, phase); // υποθέτουμε ότι η συνάρτηση υλοποιείται on pending 
 
     // --- 7. Συνδυασμός όλων των scores ---
     // Μπορούμε να δώσουμε βάρη ανάλογα με τη σημασία τους
@@ -845,3 +845,86 @@ int king_safety_score(const BoardState& board, GamePhase phase) {
 
     return whiteScore - blackScore;
 }
+
+
+// Εκτίμηση κινητικότητας κομματιών με βάρη ανά τύπο κομματιού
+int mobility_score(const BoardState& board, GamePhase phase) {
+    int mobility = 0;
+
+    uint64_t allPieces = board.whitePawns | board.whiteKnights | board.whiteBishops |
+                         board.whiteRooks | board.whiteQueens | board.whiteKing |
+                         board.blackPawns | board.blackKnights | board.blackBishops |
+                         board.blackRooks | board.blackQueens | board.blackKing;
+
+    // --- Βάρη για διαφορετικά κομμάτια ---
+    constexpr int KNIGHT_WEIGHT = 1;
+    constexpr int BISHOP_WEIGHT = 1;
+    constexpr int ROOK_WEIGHT   = 2;
+    constexpr int QUEEN_WEIGHT  = 3;
+
+    // --- Λευκά ---
+    uint64_t temp;
+
+    // Ιππότες
+    temp = board.whiteKnights;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        // Προσεγγιστικά: ιππότης μπορεί να κινηθεί σε άδεια τετράγωνα γύρω του
+        mobility += __builtin_popcountll(~allPieces) * KNIGHT_WEIGHT;
+    }
+
+    // Αξιωματικοί
+    temp = board.whiteBishops;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * BISHOP_WEIGHT;
+    }
+
+    // Πύργοι
+    temp = board.whiteRooks;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * ROOK_WEIGHT;
+    }
+
+    // Βασίλισσες
+    temp = board.whiteQueens;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * QUEEN_WEIGHT;
+    }
+
+    // --- Μαύρα ---
+    temp = board.blackKnights;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * KNIGHT_WEIGHT;
+    }
+
+    temp = board.blackBishops;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * BISHOP_WEIGHT;
+    }
+
+    temp = board.blackRooks;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * ROOK_WEIGHT;
+    }
+
+    temp = board.blackQueens;
+    while (temp) {
+        int sq = POP_LSB(temp);
+        mobility += __builtin_popcountll(~allPieces) * QUEEN_WEIGHT;
+    }
+
+    // --- Normalization ---
+    // Κάνουμε το mobility να έχει εύρος ~0–100
+    double mobilityFactor = std::min(1.0, static_cast<double>(mobility) / 1500.0);
+
+    return static_cast<int>(mobilityFactor * 100);
+}
+
+
+    
