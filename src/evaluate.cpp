@@ -118,15 +118,40 @@ GamePhase determine_game_phase(const BoardState& board) {
 
 
 int evaluateBoard(const BoardState& board) {
-    int score = 0;
-    int score = material_score(board);
+    // --- 1. Υπολογισμός game phase ---
+    GamePhase phase = determine_game_phase(board);
+
+    // --- 2. Βασικό υλικό ---
+    int material = material_score(board);
+
+    // --- 3. Piece-Square Tables ---
+    int pstScore = piece_square_table_score(board, phase);
+
+    // --- 4. Δομή πιονιών ---
+    int pawnScore = pawn_structure_score(board, phase);
+
+    // --- 5. Ασφάλεια βασιλιά ---
+    int kingScore = king_safety_score(board, phase);
+
+    // --- 6. Κινητικότητα ---
+    //int mobilityScore = mobility_score(board, phase); // υποθέτουμε ότι η συνάρτηση υλοποιείται on pending 
+
+    // --- 7. Συνδυασμός όλων των scores ---
+    // Μπορούμε να δώσουμε βάρη ανάλογα με τη σημασία τους
+    double finalScore =
+        material       * 1.0 +  // υλικό
+        pstScore       * 0.8 +  // piece-square tables
+        pawnScore      * 0.5 +  // δομή πιονιών
+        kingScore      * 0.7 +  // ασφάλεια βασιλιά
+        mobilityScore  * 0.3;   // κινητικότητα
+
+    // --- 8. Προσαρμογή ανάλογα με ποιος παίζει ---
     if (!board.whiteToMove)
-        score = -score;
-    return score;
+        finalScore = -finalScore;
 
-
-
+    return static_cast<int>(finalScore);
 }
+
 
 
 
