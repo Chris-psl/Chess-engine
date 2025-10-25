@@ -12,9 +12,12 @@ FEN: rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1 <--------------
 #include <string>
 #include <sstream>
 
-// Parse FEN string into BoardState with bitboards
+/**
+ * Parses a FEN string and returns the corresponding BoardState with bitboards.
+ */
 BoardState parseFEN(const std::string& fen);
 
-// Convert BoardState with bitboards back to FEN string
+/**
+ * Converts a BoardState with bitboards back to a FEN string.
+ */
 std::string bitboardsToFEN(const BoardState& board);
-

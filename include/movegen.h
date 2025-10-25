@@ -56,4 +56,13 @@ void initAttackTables();
  */
 MoveList generateMoves(const BoardState& board);
 
+/**
+ * Converts a board index (0..63) to file and rank.
+ * Example: squareToCoords(0) -> (a1), 63 -> (h8)
+ */
 std::string squareToString(int sq);
+
+/**
+ * Function that ensures the king is not exposed to check after move generation.
+ */
+int isLegalMoveState(const BoardState& board);

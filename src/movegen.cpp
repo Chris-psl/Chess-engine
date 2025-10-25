@@ -4,6 +4,7 @@
 
 #include "movegen.h"
 #include "parsing.h"
+#include "updateBoard.h"
 #include <bitset>
 #include <cassert>
 #include <array>
@@ -149,6 +150,7 @@ uint64_t queenAttacks(int sq, uint64_t blockers) {
     return rookAttacks(sq, blockers) | bishopAttacks(sq, blockers);
 }
 
+
 // ============================================================================
 //  SECTION 4: CORE MOVE GENERATION
 // ============================================================================
@@ -242,17 +244,48 @@ MoveList generateMoves(const BoardState& board) {
 
         // En passant captures
         if (board.enPassantSquare != -1) {
-            uint64_t epCapturers = whitePawnAttacks[board.enPassantSquare] & board.whitePawns;
-            while (epCapturers) {
-                int from = POP_LSB(epCapturers);
-                addMove(from, board.enPassantSquare, '\0', true, true, false);
+            int from1 = board.enPassantSquare - 9;
+            int from2 = board.enPassantSquare - 7;
+            
+            if(GET_BIT(board.whitePawns, from1)) {
+                addMove(from1, board.enPassantSquare, '\0', true, true, false);
+            }
+            if(GET_BIT(board.whitePawns, from2)) {
+                addMove(from2, board.enPassantSquare, '\0', true, true, false);
             }
         }
 
+
+        // Function to add castling moves
+        if(board.castlingRights != "no_castling") {
+            int kingFrom = __builtin_ctzll(board.whiteKing);
+            // Kingside castling
+            if (board.castlingRights.find('K') != std::string::npos) {
+                if (!GET_BIT(allPieces, 5) && !GET_BIT(allPieces, 6)) {
+                    // Check squares are not under attack
+                    if (!(result.blackAttacks & (1ULL << 4)) &&
+                        !(result.blackAttacks & (1ULL << 5)) &&
+                        !(result.blackAttacks & (1ULL << 6))) {
+                        addMove(kingFrom, 6, '\0', false, false, true);
+                    }
+                }
+            }
+            // Queenside castling
+            if (board.castlingRights.find('Q') != std::string::npos) {
+                if (!GET_BIT(allPieces, 1) && !GET_BIT(allPieces, 2) && !GET_BIT(allPieces, 3)) {
+                    // Check squares are not under attack
+                    if (!(result.blackAttacks & (1ULL << 4)) &&
+                        !(result.blackAttacks & (1ULL << 3)) &&
+                        !(result.blackAttacks & (1ULL << 2))) {
+                        addMove(kingFrom, 2, '\0', false, false, true);
+                    }
+                }
+            }
+        }
+
+
         // ---- Knights ----
         uint64_t knights = board.whiteKnights;
-        printBitboard(knights);
-        std::cout << "Binary representation:\n" << std::bitset<64>(knights) << "\n";
         while (knights) {
             int from = POP_LSB(knights);
             uint64_t moves = knightAttacks[from] & ~ownPieces;
@@ -336,10 +369,41 @@ MoveList generateMoves(const BoardState& board) {
 
         // En passant captures
         if (board.enPassantSquare != -1) {
-            uint64_t epCapturers = blackPawnAttacks[board.enPassantSquare] & board.blackPawns;
-            while (epCapturers) {
-                int from = POP_LSB(epCapturers);
-                addMove(from, board.enPassantSquare, '\0', true, true, false);
+            int from1 = board.enPassantSquare + 9;
+            int from2 = board.enPassantSquare + 7;
+            
+            if(GET_BIT(board.blackPawns, from1)) {
+                addMove(from1, board.enPassantSquare, '\0', true, true, false);
+            }
+            if(GET_BIT(board.blackPawns, from2)) {
+                addMove(from2, board.enPassantSquare, '\0', true, true, false);
+            }
+        }
+
+        // Function to add castling moves
+        if(board.castlingRights != "no_castling") {
+            int kingFrom = __builtin_ctzll(board.blackKing);
+            // Kingside castling
+            if (board.castlingRights.find('k') != std::string::npos) {
+                if (!GET_BIT(allPieces, 61) && !GET_BIT(allPieces, 62)) {
+                    // Check squares are not under attack
+                    if (!(result.whiteAttacks & (1ULL << 60)) &&
+                        !(result.whiteAttacks & (1ULL << 61)) &&
+                        !(result.whiteAttacks & (1ULL << 62))) {
+                        addMove(kingFrom, 62, '\0', false, false, true);
+                    }
+                }
+            }
+            // Queenside castling
+            if (board.castlingRights.find('q') != std::string::npos) {
+                if (!GET_BIT(allPieces, 57) && !GET_BIT(allPieces, 58) && !GET_BIT(allPieces, 59)) {
+                    // Check squares are not under attack
+                    if (!(result.whiteAttacks & (1ULL << 60)) &&
+                        !(result.whiteAttacks & (1ULL << 59)) &&
+                        !(result.whiteAttacks & (1ULL << 58))) {
+                        addMove(kingFrom, 58, '\0', false, false, true);
+                    }
+                }
             }
         }
 
@@ -387,40 +451,44 @@ MoveList generateMoves(const BoardState& board) {
     return result;
 }
 
+/**
+ * Function that ensures the king is not exposed to check after move generation.
+ */
+int isLegalMoveState(const BoardState& board) {
+    // Gets the position of the king of the side to move
+    bool white = board.whiteToMove;
+    int kingSq = white ? __builtin_ctzll(board.whiteKing) : __builtin_ctzll(board.blackKing);
 
-// Function to update en passant square after a move
-MoveList updateEnPassantSquare(BoardState& board, const Move& move) {
-    // Reset en passant square by default
-    board.enPassantSquare = -1;
-    MoveList result;
-    
-    /**
-     * Helper to add a move to the move list.
-     */
-    
-    // auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
-    // result.moves.push_back({from, to, promo, capture, ep, castle});
-    // };
-
-
-    // Check if the move is a two-square pawn advance
-    if (board.whiteToMove) {
-        // White to move
-        if (GET_BIT(board.whitePawns, move.from) && (move.to - move.from) == 16) {
-            board.enPassantSquare = move.from + 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
-        }
-    } else {
-        // Black to move
-        if (GET_BIT(board.blackPawns, move.from) && (move.from - move.to) == 16) {
-            board.enPassantSquare = move.from - 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
+    // iterate through all opponent pieces and see if any attack the king
+    uint64_t oppPieces = white ? (board.blackPawns | board.blackKnights | board.blackBishops |
+                                 board.blackRooks | board.blackQueens | board.blackKing)
+                              : (board.whitePawns | board.whiteKnights | board.whiteBishops |
+                                 board.whiteRooks | board.whiteQueens | board.whiteKing);
+    uint64_t allPieces = (board.whitePawns | board.whiteKnights | board.whiteBishops |
+                          board.whiteRooks | board.whiteQueens | board.whiteKing |
+                          board.blackPawns | board.blackKnights | board.blackBishops |
+                          board.blackRooks | board.blackQueens | board.blackKing);
+    uint64_t attackers = 0ULL;
+    uint64_t bb = oppPieces;;
+    while (bb) {
+        int from = POP_LSB(bb);
+        // Determine piece type and compute attacks
+        if (GET_BIT(white ? board.blackPawns : board.whitePawns, from)) {
+            uint64_t attacks = white ? blackPawnAttacks[from] : whitePawnAttacks[from];
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackKnights : board.whiteKnights, from)) {
+            uint64_t attacks = knightAttacks[from];
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackBishops : board.whiteBishops, from)) {
+            uint64_t attacks = bishopAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackRooks : board.whiteRooks, from)) {
+            uint64_t attacks = rookAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        } else if (GET_BIT(white ? board.blackQueens : board.whiteQueens, from)) {
+            uint64_t attacks = queenAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
         }
     }
-
-    return result;
+    return true; // King is safe
 }
