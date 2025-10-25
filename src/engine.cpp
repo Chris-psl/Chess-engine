@@ -7,7 +7,7 @@
 // en passant test: 8/8/8/3pP3/8/8/8/8 w - d6 0 1
 // capture test: 8/8/3p4/4P3/8/8/8/8 w - d3 0 1
 // Ban king exposure test: 8/8/8/8/3n4/8/4K3/8 w - - 0 1
-// ban illegal board state test: 8/8/8/8/8/3q4/4K3/4k3 w - - 0 1
+// ban illegal board state test: 8/8/8/8/8/8/3k4/4K3 w - - 0 1
 
 #include <iostream>
 
@@ -114,7 +114,7 @@ int main() {
         //////////////////////// Engine test ////////////////////////
 
         // Example usage: simple engine loop
-        board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Starting position
+        board = parseFEN("rnbq1rk1/pp2bppp/2p1pn2/3p4/3P1B2/2N1PN2/PP3PPP/R2QKB1R w KQ - 2 8"); // best pos d4, e3, f4 bishop
 
         // Initialize attack tables and generate moves
         initAttackTables();
@@ -122,14 +122,19 @@ int main() {
 
         while(moves.moves.size() > 0){
             // Apply each move and evaluate using minimax
-           BoardState newBoard = board;
-           Move m = moves.moves.back();
-           moves.moves.pop_back();
-           applyMove(newBoard, m);
-           int move = minimax(newBoard, 2, false);
+            BoardState newBoard = board;
+            Move m = moves.moves.back();
+            moves.moves.pop_back();
+            applyMove(newBoard, m);
+            if(!isLegalMoveState(newBoard)) {
+                continue; // Skip illegal board states
+            }
 
-           // Print move and its evaluation
-           std::cout << "Move: " << squareToString(m.from) << squareToString(m.to) << " Evaluation: " << move << "\n";
+            // calculate minimax evaluation for the new board state
+            int move = minimax(newBoard, 2, false);
+
+            // Print move and its evaluation
+            std::cout << "Move: " << squareToString(m.from) << squareToString(m.to) << " Evaluation: " << move << "\n";
         }
     }
     return 0;
