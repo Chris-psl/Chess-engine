@@ -454,7 +454,7 @@ MoveList generateMoves(const BoardState& board) {
 /**
  * Function that ensures the king is not exposed to check after move generation.
  */
-int isLegalMoveState(const BoardState& board) {
+bool isLegalMoveState(const BoardState& board) {
     // Gets the position of the king of the side to move
     bool white = board.whiteToMove;
     int kingSq = white ? __builtin_ctzll(board.whiteKing) : __builtin_ctzll(board.blackKing);
@@ -468,7 +468,7 @@ int isLegalMoveState(const BoardState& board) {
                           board.whiteRooks | board.whiteQueens | board.whiteKing |
                           board.blackPawns | board.blackKnights | board.blackBishops |
                           board.blackRooks | board.blackQueens | board.blackKing);
-    uint64_t attackers = 0ULL;
+    //uint64_t attackers = 0ULL;
     uint64_t bb = oppPieces;;
     while (bb) {
         int from = POP_LSB(bb);
@@ -487,6 +487,9 @@ int isLegalMoveState(const BoardState& board) {
             if (GET_BIT(attacks, kingSq)) return false; // King is attacked
         } else if (GET_BIT(white ? board.blackQueens : board.whiteQueens, from)) {
             uint64_t attacks = queenAttacks(from, allPieces);
+            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
+        }else if( GET_BIT(white ? board.blackKing : board.whiteKing, from)) {
+            uint64_t attacks = kingAttacks[from];
             if (GET_BIT(attacks, kingSq)) return false; // King is attacked
         }
     }

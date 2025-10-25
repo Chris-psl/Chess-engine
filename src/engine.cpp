@@ -6,6 +6,8 @@
 // castling move test:  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1
 // en passant test: 8/8/8/3pP3/8/8/8/8 w - d6 0 1
 // capture test: 8/8/3p4/4P3/8/8/8/8 w - d3 0 1
+// Ban king exposure test: 8/8/8/8/3n4/8/4K3/8 w - - 0 1
+// ban illegal board state test: 8/8/8/8/8/3q4/4K3/4k3 w - - 0 1
 
 #include <iostream>
 
@@ -38,6 +40,15 @@ int main() {
         std::string fenInput;
         std::getline(std::cin, fenInput);
         board = parseFEN(fenInput);
+
+        initAttackTables();
+        // Check if the state is legal
+        if(!isLegalMoveState(board)){
+            std::cout << "Illegal board state detected!\n";
+            return 1;
+        }else{
+            std::cout << "Legal board state.\n";
+        }
 
         // Print parsed board state (for verification)
         std::cout << "Parsed Board State:\n";
