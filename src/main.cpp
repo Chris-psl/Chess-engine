@@ -13,6 +13,11 @@
 // #include <vector>
 // #include <cctype>
 
+// #include "parsing.h"
+// #include "movegen.h"
+// #include "engine.h"
+// #include "updateBoard.h"
+
 // const int SQUARE_SIZE = 80;
 // const int BOARD_SIZE = 8;
 

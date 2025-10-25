@@ -6,8 +6,14 @@
 // castling move test:  r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1
 // en passant test: 8/8/8/3pP3/8/8/8/8 w - d6 0 1
 // capture test: 8/8/3p4/4P3/8/8/8/8 w - d3 0 1
+// Ban king exposure test: 8/8/8/8/3n4/8/4K3/8 w - - 0 1
+// ban illegal board state test: 8/8/8/8/8/8/3k4/4K3 w - - 0 1
 
 #include <iostream>
+#include <limits>
+#include <string>
+#include <vector>
+#include <future>
 
 #include "engine.h"
 #include "movegen.h"
@@ -38,6 +44,15 @@ int main() {
         std::string fenInput;
         std::getline(std::cin, fenInput);
         board = parseFEN(fenInput);
+
+        initAttackTables();
+        // Check if the state is legal
+        if(!isLegalMoveState(board)){
+            std::cout << "Illegal board state detected!\n";
+            return 1;
+        }else{
+            std::cout << "Legal board state.\n";
+        }
 
         // Print parsed board state (for verification)
         std::cout << "Parsed Board State:\n";
@@ -102,23 +117,50 @@ int main() {
     }else if (command == "2"){
         //////////////////////// Engine test ////////////////////////
 
-        // Example usage: simple engine loop
-        board = parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"); // Starting position
+         board = parseFEN("r1bq1rk1/pp3ppp/2n2n2/2bp4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 0 10");
 
         // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
 
-        while(moves.moves.size() > 0){
-            // Apply each move and evaluate using minimax
-           BoardState newBoard = board;
-           Move m = moves.moves.back();
-           moves.moves.pop_back();
-           applyMove(newBoard, m);
-           int move = minimax(newBoard, 2, false);
+        std::vector<std::future<std::pair<Move, int>>> futures;
 
-           // Print move and its evaluation
-           std::cout << "Move: " << squareToString(m.from) << squareToString(m.to) << " Evaluation: " << move << "\n";
+        // Launch each move in a separate thread
+        for (const auto& m : moves.moves) {
+            futures.push_back(std::async(std::launch::async, [board, m]() -> std::pair<Move,int> {
+                BoardState newBoard = board;
+                applyMove(newBoard, m);
+
+                if (!isLegalMoveState(newBoard)) {
+                    return {m, std::numeric_limits<int>::min()}; // Illegal moves get minimal evaluation
+                }
+
+                int eval = minimax(newBoard, 3, false); // Depth 3
+                return {m, eval};
+            }));
+        }
+
+        // Collect results and find the best move
+        Move bestMove;
+        int bestEval = std::numeric_limits<int>::min();
+        bool foundMove = false;
+
+        for (auto &fut : futures) {
+            auto [move, eval] = fut.get();
+            if (eval > bestEval) {
+                bestEval = eval;
+                bestMove = move;
+                foundMove = true;
+            }
+        }
+
+        // Print best move
+        if (foundMove) {
+            std::cout << "\n\nBest Move: " << squareToString(bestMove.from)
+                    << squareToString(bestMove.to)
+                    << " Evaluation: " << bestEval << "\n";
+        } else {
+            std::cout << "No legal moves found.\n\n";
         }
     }
     return 0;

@@ -65,4 +65,9 @@ std::string squareToString(int sq);
 /**
  * Function that ensures the king is not exposed to check after move generation.
  */
-int isLegalMoveState(const BoardState& board);
+bool isLegalMoveState(const BoardState& board);
+
+/**
+ *  Function that checks if a move puts own king in check.
+ */
+bool is_in_check(const BoardState& board);
