@@ -136,6 +136,7 @@ void applyMove(BoardState& board, const Move& move) {
         } else if (GET_BIT(board.whiteKing, move.from)) {
             board.whiteKing &= ~(1ULL << move.from);
             board.whiteKing |= (1ULL << move.to);
+            
             // Handle castling
             if (move.isCastling) {
                 if (move.to == 6) { // Kingside
