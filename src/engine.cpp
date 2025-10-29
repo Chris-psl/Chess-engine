@@ -117,7 +117,7 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
         //////////////////////// Main implementation ////////////////////////
 
         // Parse the FEN string to set up the board
-        if (!fenInput.empty())board = parseFEN(fenInput);
+        //if (!fenInput.empty())board = parseFEN(fenInput);
 
         // Initialize attack tables and generate moves
         initAttackTables();

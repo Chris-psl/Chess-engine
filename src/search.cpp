@@ -23,9 +23,9 @@
  * maximizingPlayer: True for the AI player, false for the opponent.
  */
 int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {\
-    std::cout << "new iteration at depth " << depth << "\n";
+    //std::cout << "new iteration at depth " << depth << "\n";
     if (depth == 0) {
-        std::cout << "Evaluating board at depth 0\n";
+        //std::cout << "Evaluating board at depth 0\n";
         return evaluateBoard(board);
         // return 0; // Placeholder evaluation
     }

@@ -222,6 +222,7 @@ int main() {
         std::string lastUciMove;
 
         while (window.pollEvent(event)) {
+            // Close window
             if (event.type == sf::Event::Closed) {
                 window.close();
                 break;
@@ -311,7 +312,7 @@ int main() {
         // If it's engine's turn, request a move and apply it once
         bool engineTurn = !((playerChoice == 1 && board.whiteToMove) || (playerChoice == 2 && !board.whiteToMove));
         if (engineTurn) {
-            // Call engine - assumed signature: engine(cmd, fenString, BoardState)
+            // Call engine - signature: engine(cmd, fenString, BoardState)
             // If engine uses the BoardState param to decide, we pass current board.
             std::string engineMoveUCI = engine("2", initialFen, board);
 
@@ -353,7 +354,7 @@ int main() {
                         pieces[idx].row = toRC.x;
                         pieces[idx].col = toRC.y;
                         pieces[idx].sprite.setPosition(static_cast<float>(toRC.y * SQUARE_SIZE), static_cast<float>(toRC.x * SQUARE_SIZE));
-                        std::cout << "Engine Move: " << engineMoveUCI << "\n";
+                        //std::cout << "Engine Move: " << engineMoveUCI << "\n";
                     }
                 }
             } else {

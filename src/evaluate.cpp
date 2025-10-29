@@ -892,32 +892,32 @@ int mobility_score(const BoardState& board, GamePhase phase) {
 
 int evaluateBoard(const BoardState& board) {
     // --- 1. Υπολογισμός game phase ---
-    std::cout << "evaluating game phase..." << std::endl;
+    //std::cout << "evaluating game phase..." << std::endl;
     GamePhase phase = determine_game_phase(board);
 
     // --- 2. Βασικό υλικό ---
-    std::cout << "evaluating material..." << std::endl;
+    //std::cout << "evaluating material..." << std::endl;
     int material = material_score(board);
 
     // --- 3. Piece-Square Tables ---
-    std::cout << "evaluating piece-square tables..." << std::endl;
+    //std::cout << "evaluating piece-square tables..." << std::endl;
     int pstScore = piece_square_table_score(board, phase);
 
     // --- 4. Δομή πιονιών ---
-    std::cout << "evaluating pawn structure..." << std::endl;
+    //std::cout << "evaluating pawn structure..." << std::endl;
     int pawnScore = pawn_structure_score(board, phase);
 
     // --- 5. Ασφάλεια βασιλιά ---
-    std::cout << "evaluating king safety..." << std::endl;
+    //std::cout << "evaluating king safety..." << std::endl;
     int kingScore = king_safety_score(board, phase);
 
     // --- 6. Κινητικότητα ---
-    std::cout << "evaluating mobility..." << std::endl;
+    //std::cout << "evaluating mobility..." << std::endl;
     //int mobilityScore = mobility_score(board, phase); // υποθέτουμε ότι η συνάρτηση υλοποιείται on pending
     
     // --- Ελεγχος για τσεκ ---
     if (is_in_check(board)) {
-        std::cout << (board.whiteToMove ? "White" : "Black") << " is in check!" << std::endl;
+        //std::cout << (board.whiteToMove ? "White" : "Black") << " is in check!" << std::endl;
         // Προσθέτουμε μεγαλη ποινη για τσεκ
         if (board.whiteToMove)
             material -= 10000000; // ποινή για λευκό
@@ -938,7 +938,7 @@ int evaluateBoard(const BoardState& board) {
     if (!board.whiteToMove)
         finalScore = -finalScore;
 
-    std::cout << "final evaluation score: " << static_cast<int>(finalScore) << std::endl;
+    //std::cout << "final evaluation score: " << static_cast<int>(finalScore) << std::endl;
     return static_cast<int>(finalScore);
 }
 
