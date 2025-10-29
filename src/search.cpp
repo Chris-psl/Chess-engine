@@ -23,20 +23,15 @@
  * maximizingPlayer: True for the AI player, false for the opponent.
  */
 int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {\
-    //std::cout << "new iteration at depth " << depth << "\n";
-    if (depth == 0) {
-        //std::cout << "Evaluating board at depth 0\n";
-        return evaluateBoard(board);
-        // return 0; // Placeholder evaluation
-    }
-
     // Generate all possible moves for the current player
     initAttackTables();
-    if (!isLegalMoveState(board)) {
-        // If the board state is illegal, return a large negative value
-        return isMaximizingPlayer ? std::numeric_limits<int>::min() : std::numeric_limits<int>::max();
+
+    // if reached the maximum depth, evaluate the board
+    if (depth == 0) {
+        return evaluateBoard(board);
     }
-    MoveList moves = generateMoves(board);
+
+    MoveList moves = generateLegalMoves(board);
     
     if (isMaximizingPlayer) {
         int maxEval = std::numeric_limits<int>::min();

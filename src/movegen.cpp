@@ -455,45 +455,44 @@ MoveList generateMoves(const BoardState& board) {
  * Function that ensures the king is not exposed to check after move generation.
  */
 bool isLegalMoveState(const BoardState& board) {
-    // Gets the position of the king of the side to move
-    bool white = board.whiteToMove;
-    int kingSq = white ? __builtin_ctzll(board.whiteKing) : __builtin_ctzll(board.blackKing);
+    // We need to check the side that just moved (opposite of side to move)
+    bool white = !board.whiteToMove;
 
-    // iterate through all opponent pieces and see if any attack the king
-    uint64_t oppPieces = white ? (board.blackPawns | board.blackKnights | board.blackBishops |
-                                 board.blackRooks | board.blackQueens | board.blackKing)
-                              : (board.whitePawns | board.whiteKnights | board.whiteBishops |
-                                 board.whiteRooks | board.whiteQueens | board.whiteKing);
+    // Get that side's king square
+    int kingSq = white ? __builtin_ctzll(board.whiteKing)
+                       : __builtin_ctzll(board.blackKing);
+
+    // Ensure both kings exist
+    if (board.whiteKing == 0 || board.blackKing == 0)
+        return false;
+
+    // Collect all pieces
     uint64_t allPieces = (board.whitePawns | board.whiteKnights | board.whiteBishops |
                           board.whiteRooks | board.whiteQueens | board.whiteKing |
                           board.blackPawns | board.blackKnights | board.blackBishops |
                           board.blackRooks | board.blackQueens | board.blackKing);
-    //uint64_t attackers = 0ULL;
-    uint64_t bb = oppPieces;;
-    while (bb) {
-        int from = POP_LSB(bb);
-        // Determine piece type and compute attacks
-        if (GET_BIT(white ? board.blackPawns : board.whitePawns, from)) {
-            uint64_t attacks = white ? blackPawnAttacks[from] : whitePawnAttacks[from];
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        } else if (GET_BIT(white ? board.blackKnights : board.whiteKnights, from)) {
-            uint64_t attacks = knightAttacks[from];
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        } else if (GET_BIT(white ? board.blackBishops : board.whiteBishops, from)) {
-            uint64_t attacks = bishopAttacks(from, allPieces);
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        } else if (GET_BIT(white ? board.blackRooks : board.whiteRooks, from)) {
-            uint64_t attacks = rookAttacks(from, allPieces);
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        } else if (GET_BIT(white ? board.blackQueens : board.whiteQueens, from)) {
-            uint64_t attacks = queenAttacks(from, allPieces);
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        }else if( GET_BIT(white ? board.blackKing : board.whiteKing, from)) {
-            uint64_t attacks = kingAttacks[from];
-            if (GET_BIT(attacks, kingSq)) return false; // King is attacked
-        }
+
+    // Collect opponent pieces (the side that will move next)
+    uint64_t oppPawns   = white ? board.blackPawns   : board.whitePawns;
+    uint64_t oppKnights = white ? board.blackKnights : board.whiteKnights;
+    uint64_t oppBishops = white ? board.blackBishops : board.whiteBishops;
+    uint64_t oppRooks   = white ? board.blackRooks   : board.whiteRooks;
+    uint64_t oppQueens  = white ? board.blackQueens  : board.whiteQueens;
+    uint64_t oppKing    = white ? board.blackKing    : board.whiteKing;
+
+    // Check for attacks on the king
+    if (white) {
+        if (blackPawnAttacks[kingSq] & oppPawns) return false;
+    } else {
+        if (whitePawnAttacks[kingSq] & oppPawns) return false;
     }
-    return true; // King is safe
+
+    if (knightAttacks[kingSq] & oppKnights) return false;
+    if (bishopAttacks(kingSq, allPieces) & (oppBishops | oppQueens)) return false;
+    if (rookAttacks(kingSq, allPieces) & (oppRooks | oppQueens)) return false;
+    if (kingAttacks[kingSq] & oppKing) return false;
+
+    return true;
 }
 
 
@@ -548,3 +547,17 @@ bool is_in_check(const BoardState& board) {
     return false; // No attackers found → not in check
 }
 
+/**
+ * Generate all legal moves for the current player.
+ */
+MoveList generateLegalMoves(const BoardState& board) {
+    MoveList pseudo = generateMoves(board);
+    MoveList legal;
+    for (auto& move : pseudo.moves) {
+        BoardState newBoard = board;
+        applyMove(newBoard, move);
+        if (isLegalMoveState(newBoard) && !is_in_check(newBoard))
+            legal.moves.push_back(move);
+    }
+    return legal;
+}
