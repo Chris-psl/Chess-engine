@@ -117,7 +117,7 @@ std::string getMoveString(int fromRow, int fromCol, int toRow, int toCol, char p
 
 std::optional<Move> uciToMove(const std::string& uci) {
     if (uci.size() < 4) return std::nullopt;
-    char fFile = uci[0], fRank = uci[1], tFile = uci[2], tRank = uci[3];
+    char fFile = uci[0], fRank = uci[1], tFile = uci[2], tRank = uci[3], promotion = uci[4];
     if (fFile < 'a' || fFile > 'h' || tFile < 'a' || tFile > 'h') return std::nullopt;
     if (fRank < '1' || fRank > '8' || tRank < '1' || tRank > '8') return std::nullopt;
 
@@ -129,10 +129,12 @@ std::optional<Move> uciToMove(const std::string& uci) {
     int fromSq = fromRank * 8 + fromFile;
     int toSq   = toRank * 8 + toFile;
 
+
+
     Move m{};
     m.from = fromSq;
     m.to = toSq;
-    m.promotion = '\0';
+    m.promotion = promotion;
     m.isCapture = false;
     m.isEnPassant = false;
     m.isCastling = false;
