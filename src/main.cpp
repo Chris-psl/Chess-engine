@@ -1,18 +1,7 @@
-// // Build UCI string from rows/cols (row 0 = rank 8)
-// std::string getMoveString(int fromRow, int fromCol, int toRow, int toCol, char promotion = '\0') {
-//     int fromRankIndex = 8 - (fRank - '0'); // rank8 = 0, rank1 = 7
-//     int toRankIndex   = 8 - (tRank - '0');
-//     int fromSq = (7 - fromRankIndex) * 8 + fromFile; // match engine indexing
-//     int toSq   = (7 - toRankIndex) * 8 + toFile;
-//     std::string s;
-//     s += fromFile; s += fromRank; s += toFile; s += toRank;
-//     if (promotion != '\0') s += std::tolower(static_cast<unsigned char>(promotion));
-//     return s;
-// }
-
-
 // main.cpp - Chess GUI using SFML, integrated with engine applyMove(BoardState&, const Move&)
-// Requires: SFML and your project's headers: parsing.h, engine.h, updateBoard.h (applyMove), utils.h
+// castling test: r4kr1/8/8/8/8/8/8/R3K2R w KQ - 0 1
+// castling test: p4k1p/8/8/8/8/8/8/R3K2R w KQ - 0 1
+// en passant test: 8/8/8/3pP3/8/8/8/4k3 b - e3 0 1
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -173,15 +162,22 @@ int main() {
     std::cout << "Enter mode (1: Engine Test, 2: GUI): ";
     std::getline(std::cin, mode);
 
-    std::string initialFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    // Get initial FEN and setup board
+    std::cout << "Enter initial FEN (or leave empty for standard start): ";
+    std::string fenInput;
+    std::getline(std::cin, fenInput);
+    if (fenInput.empty()) fenInput = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    std::string initialFen = fenInput;
     BoardState boardState = parseFEN(initialFen);
 
+    // Mode 1: Engine Test
     if (mode == "1") {
         std::string r = engine("1", initialFen, boardState);
         std::cout << "Engine returned: " << r << std::endl;
         return 0;
     }
 
+    // Mode 2: GUI
     int playerChoice = 1;
     std::cout << "Play as (1=White, 2=Black). Default 1: ";
     std::string input;
@@ -191,8 +187,10 @@ int main() {
         if (playerChoice != 1 && playerChoice != 2) playerChoice = 1;
     }
 
+    // Initialize SFML window
     sf::RenderWindow window(sf::VideoMode(SQUARE_SIZE * BOARD_SIZE, SQUARE_SIZE * BOARD_SIZE), "Chess GUI");
 
+    // Load piece textures
     std::unordered_map<char, sf::Texture> textures;
     for (const auto& kv : pieceToFile) {
         char sym = kv.first;
@@ -205,9 +203,11 @@ int main() {
         }
     }
 
+    // Load initial position
     std::vector<Piece> pieces;
     loadPositionFromFEN(initialFen, pieces, textures);
 
+    // Main loop
     BoardState board = parseFEN(initialFen);
     Piece* selectedPiece = nullptr;
     int selectedIndex = -1;
