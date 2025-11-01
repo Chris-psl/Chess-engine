@@ -58,7 +58,7 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
 
         // Initialize attack tables and generate moves
         //initAttackTables(); we initialized them above
-        MoveList moves = generateMoves(board);
+        MoveList moves = generateLegalMoves(board);
         Move testMove = moves.moves[1]; // Take the first move for testing
 
 

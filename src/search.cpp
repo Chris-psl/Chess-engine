@@ -24,7 +24,7 @@
  */
 int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {\
     // Generate all possible moves for the current player
-    initAttackTables();
+    //initAttackTables();
 
     // if reached the maximum depth, evaluate the board
     if (depth == 0) {

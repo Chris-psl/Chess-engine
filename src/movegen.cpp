@@ -455,6 +455,9 @@ MoveList generateMoves(const BoardState& board) {
  * Function that ensures the king is not exposed to check after move generation.
  */
 bool isLegalMoveState(const BoardState& board) {
+     // Both kings must exist first (avoid __builtin_ctzll on zero)
+    if (board.whiteKing == 0 || board.blackKing == 0) return false;
+
     // We need to check the side that just moved (opposite of side to move)
     bool white = !board.whiteToMove;
 
@@ -495,69 +498,21 @@ bool isLegalMoveState(const BoardState& board) {
     return true;
 }
 
-
-/**
- *  Function that checks if the current player is in check
- */
-bool is_in_check(const BoardState& board) {
-    // Determine which side's king we are checking
-    bool sideToMove = board.whiteToMove;  // true = white, false = black
-
-    // Get the king square for the side to move
-    int kingSq = sideToMove
-        ? __builtin_ctzll(board.whiteKing)
-        : __builtin_ctzll(board.blackKing);
-
-    // Collect opponent pieces
-    uint64_t oppPawns   = sideToMove ? board.blackPawns   : board.whitePawns;
-    uint64_t oppKnights = sideToMove ? board.blackKnights : board.whiteKnights;
-    uint64_t oppBishops = sideToMove ? board.blackBishops : board.whiteBishops;
-    uint64_t oppRooks   = sideToMove ? board.blackRooks   : board.whiteRooks;
-    uint64_t oppQueens  = sideToMove ? board.blackQueens  : board.whiteQueens;
-    uint64_t oppKing    = sideToMove ? board.blackKing    : board.whiteKing;
-
-    // All pieces (needed for sliding attacks)
-    uint64_t allPieces =
-        board.whitePawns | board.whiteKnights | board.whiteBishops |
-        board.whiteRooks | board.whiteQueens | board.whiteKing |
-        board.blackPawns | board.blackKnights | board.blackBishops |
-        board.blackRooks | board.blackQueens | board.blackKing;
-
-    // Check for pawn attacks
-    if (sideToMove) {
-        // If it's white's turn, check black pawn attacks
-        if (blackPawnAttacks[kingSq] & oppPawns) return true;
-    } else {
-        // If it's black's turn, check white pawn attacks
-        if (whitePawnAttacks[kingSq] & oppPawns) return true;
-    }
-
-    // Check knights
-    if (knightAttacks[kingSq] & oppKnights) return true;
-
-    // Check bishops
-    if (bishopAttacks(kingSq, allPieces) & (oppBishops | oppQueens)) return true;
-
-    // Check rooks
-    if (rookAttacks(kingSq, allPieces) & (oppRooks | oppQueens)) return true;
-
-    // Check kings (adjacent squares)
-    if (kingAttacks[kingSq] & oppKing) return true;
-
-    return false; // No attackers found → not in check
-}
-
 /**
  * Generate all legal moves for the current player.
  */
 MoveList generateLegalMoves(const BoardState& board) {
     MoveList pseudo = generateMoves(board);
     MoveList legal;
+
     for (auto& move : pseudo.moves) {
         BoardState newBoard = board;
         applyMove(newBoard, move);
-        if (isLegalMoveState(newBoard) && !is_in_check(newBoard))
+
+        // Ensure mover didn't leave king in check
+        if (isLegalMoveState(newBoard))
             legal.moves.push_back(move);
     }
+
     return legal;
 }
