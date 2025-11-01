@@ -223,68 +223,94 @@ int main() {
                 break;
             }
 
+            // --------------------------------------------------
+            // Human turn
+            // --------------------------------------------------
             bool humanTurn = (playerChoice == 1 && board.whiteToMove) || (playerChoice == 2 && !board.whiteToMove);
 
-            // Check if player has lost
             if (humanTurn) {
                 BoardState tempBoard = board;
                 MoveList legalMoves = generateLegalMoves(tempBoard);
+
+                // Check if player has lost
                 if(legalMoves.moves.empty()) {
                     std::cout << "Game over! You have no legal moves.\n";
                     window.close();
                     break;
                 }
-            }
+            
 
-            // Handle piece selection and movement
-            if (humanTurn && event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-                sf::Vector2i sq = getSquareFromMouse(event.mouseButton.x, event.mouseButton.y);
-                int row = sq.x; // y
-                int col = sq.y; // x
-                int idx = findPieceAt(pieces, row, col);
+                // Handle piece selection and movement
+                if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                    sf::Vector2i sq = getSquareFromMouse(event.mouseButton.x, event.mouseButton.y);
+                    int row = sq.x; // y
+                    int col = sq.y; // x
+                    int idx = findPieceAt(pieces, row, col);
 
-                if (!selectedPiece) {
-                    if (idx != -1) { selectedIndex = idx; selectedPiece = &pieces[selectedIndex]; }
-                } else {
-                    int fromRow = selectedPiece->row;
-                    int fromCol = selectedPiece->col;
-                    int toRow = row;
-                    int toCol = col;
+                    if (!selectedPiece) {
+                        if (idx != -1) { selectedIndex = idx; selectedPiece = &pieces[selectedIndex]; }
+                    } else {
+                        int fromRow = selectedPiece->row;
+                        int fromCol = selectedPiece->col;
+                        int toRow = row;
+                        int toCol = col;
 
-                    if (fromRow == toRow && fromCol == toCol) { selectedPiece = nullptr; selectedIndex = -1; continue; }
+                        if (fromRow == toRow && fromCol == toCol) { selectedPiece = nullptr; selectedIndex = -1; continue; }
 
-                    char promotion = '\0';
-                    if ((selectedPiece->type == 'P' && toRow == 0) || (selectedPiece->type == 'p' && toRow == 7)) promotion = 'Q';
-                    std::string uci = getMoveString(fromRow, fromCol, toRow, toCol, promotion);
+                        char promotion = '\0';
+                        if ((selectedPiece->type == 'P' && toRow == 0) || (selectedPiece->type == 'p' && toRow == 7)) promotion = 'Q';
+                        std::string uci = getMoveString(fromRow, fromCol, toRow, toCol, promotion);
 
-                    auto maybeMove = uciToMove(uci);
-                    if (!maybeMove) { std::cerr << "Invalid UCI: " << uci << "\n"; selectedPiece = nullptr; selectedIndex = -1; continue; }
-                    Move mv = *maybeMove;
+                        auto maybeMove = uciToMove(uci);
+                        if (!maybeMove) { std::cerr << "Invalid UCI: " << uci << "\n"; selectedPiece = nullptr; selectedIndex = -1; continue; }
+                        Move mv = *maybeMove;
 
-                    int captureIdx = findPieceAt(pieces, toRow, toCol);
-                    if (captureIdx != -1 && captureIdx != selectedIndex) mv.isCapture = true;
+                        int captureIdx = findPieceAt(pieces, toRow, toCol);
+                        if (captureIdx != -1 && captureIdx != selectedIndex) mv.isCapture = true;
 
-                    applyMove(board, mv);
+                        // Ensure move is legal
+                        bool isLegal = false;
+                        for (const auto& legalMove : legalMoves.moves) {
+                            if (legalMove.from == mv.from && legalMove.to == mv.to &&
+                                legalMove.promotion == mv.promotion) {
+                                isLegal = true;
+                                break;
+                            }
+                        }
 
-                    if (captureIdx != -1 && captureIdx != selectedIndex) {
-                        if (captureIdx < selectedIndex) { pieces.erase(pieces.begin() + captureIdx); selectedIndex--; }
-                        else pieces.erase(pieces.begin() + captureIdx);
+                        if (!isLegal) {
+                            std::cerr << "Illegal move attempted: " << uci << "\n";
+                            selectedPiece = nullptr;
+                            selectedIndex = -1;
+                            continue;
+                        }
+
+                        // Apply move to board state
+                        applyMove(board, mv);
+
+                        if (captureIdx != -1 && captureIdx != selectedIndex) {
+                            if (captureIdx < selectedIndex) { pieces.erase(pieces.begin() + captureIdx); selectedIndex--; }
+                            else pieces.erase(pieces.begin() + captureIdx);
+                        }
+
+                        pieces[selectedIndex].row = toRow;
+                        pieces[selectedIndex].col = toCol;
+                        pieces[selectedIndex].sprite.setPosition(static_cast<float>(toCol * SQUARE_SIZE), static_cast<float>(toRow * SQUARE_SIZE));
+
+                        lastUciMove = uci;
+                        humanMovedThisFrame = true;
+                        selectedPiece = nullptr;
+                        selectedIndex = -1;
                     }
-
-                    pieces[selectedIndex].row = toRow;
-                    pieces[selectedIndex].col = toCol;
-                    pieces[selectedIndex].sprite.setPosition(static_cast<float>(toCol * SQUARE_SIZE), static_cast<float>(toRow * SQUARE_SIZE));
-
-                    lastUciMove = uci;
-                    humanMovedThisFrame = true;
-                    selectedPiece = nullptr;
-                    selectedIndex = -1;
                 }
             }
         }
 
         if (humanMovedThisFrame) std::cout << "Human Move: " << lastUciMove << "\n";
 
+        // --------------------------------------------------
+        // Engine turn
+        // --------------------------------------------------
         bool engineTurn = !((playerChoice == 1 && board.whiteToMove) || (playerChoice == 2 && !board.whiteToMove));
         if (engineTurn) {
             std::string fenNow = bitboardsToFEN(board);
