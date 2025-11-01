@@ -1,7 +1,9 @@
 // main.cpp - Chess GUI using SFML, integrated with engine applyMove(BoardState&, const Move&)
 // castling test: r4kr1/8/8/8/8/8/8/R3K2R w KQ - 0 1
 // castling test: p4k1p/8/8/8/8/8/8/R3K2R w KQ - 0 1
+// castling for black: r3k2r/8/8/8/8/8/8/R4KR1 b kq - 0 1
 // en passant test: 8/8/8/3pP3/8/8/8/4k3 b - e3 0 1
+// mat test: 6k1/5ppp/8/8/3PPP11/4K3/3P4/8 w - - 0 1
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -81,8 +83,10 @@ void loadPositionFromFEN(const std::string& fen, std::vector<Piece>& pieces, con
 sf::Vector2i getSquareFromMouse(int x, int y) {
     int col = x / SQUARE_SIZE;
     int row = y / SQUARE_SIZE;
-    if (col < 0) col = 0; if (col >= BOARD_SIZE) col = BOARD_SIZE - 1;
-    if (row < 0) row = 0; if (row >= BOARD_SIZE) row = BOARD_SIZE - 1;
+    if (col < 0) col = 0; 
+    if (col >= BOARD_SIZE) col = BOARD_SIZE - 1;
+    if (row < 0) row = 0; 
+    if (row >= BOARD_SIZE) row = BOARD_SIZE - 1;
     return { row, col };
 }
 
@@ -285,8 +289,25 @@ int main() {
                             continue;
                         }
 
+                        // if legal moves are less than 4 print them for debug
+                        if(legalMoves.moves.size() <= 4) {
+                            std::cout << "Legal moves:\n";
+                            for (const auto& lm : legalMoves.moves) {
+                                std::string lmUci = getMoveString(lm.from / 8, lm.from % 8, lm.to / 8, lm.to % 8, lm.promotion);
+                                std::cout << lmUci << " ";
+                            }
+                            std::cout << "\n";
+                        }
+
                         // Apply move to board state
                         applyMove(board, mv);
+
+                        // Change the icon if there is promotion
+                        if (mv.promotion != '\0') {
+                            char promoChar = (board.whiteToMove) ? mv.promotion : static_cast<char>(std::tolower(static_cast<unsigned char>(mv.promotion)));
+                            selectedPiece->type = promoChar;
+                            selectedPiece->sprite.setTexture(textures.at(promoChar));
+                        }
 
                         if (captureIdx != -1 && captureIdx != selectedIndex) {
                             if (captureIdx < selectedIndex) { pieces.erase(pieces.begin() + captureIdx); selectedIndex--; }
@@ -338,6 +359,13 @@ int main() {
                         pieces[idx].row = toRC.x;
                         pieces[idx].col = toRC.y;
                         pieces[idx].sprite.setPosition(static_cast<float>(toRC.y * SQUARE_SIZE), static_cast<float>(toRC.x * SQUARE_SIZE));
+
+                        // Handle promotion
+                        if (mv.promotion != '\0') {
+                            char promoChar = (board.whiteToMove) ? mv.promotion : static_cast<char>(std::tolower(static_cast<unsigned char>(mv.promotion)));
+                            pieces[idx].type = promoChar;
+                            pieces[idx].sprite.setTexture(textures.at(promoChar));
+                        }
                     }
                 }
             } else std::cerr << "Engine returned no valid move: " << engineMoveUCI << "\n";

@@ -165,7 +165,7 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
                 bestMoveStr.push_back(bestMove.promotion);
 
             // Print the move for debug 
-            std::cout << "\n\nBest Move: " << bestMoveStr << " Evaluation: " << bestEval << "\n";
+            std::cout << "\nBest Move: " << bestMoveStr << " Evaluation: " << bestEval << "\n";
 
             return bestMoveStr;
         } else {
