@@ -660,7 +660,6 @@ int evaluateBoard(const BoardState& board) {
         pstScore       * 0.8 +  // piece-square tables
         pawnScore      * 0.5 +  // δομή πιονιών
         kingScore      * 0.7   // ασφάλεια βασιλιά
-       // mobilityScore  * 0.3;   // κινητικότητα
     ;
     // --- 8. Προσαρμογή ανάλογα με ποιος παίζει ---
     if (!board.whiteToMove)

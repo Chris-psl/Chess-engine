@@ -462,12 +462,7 @@ bool isLegalMoveState(const BoardState& board) {
     bool white = !board.whiteToMove;
 
     // Get that side's king square
-    int kingSq = white ? __builtin_ctzll(board.whiteKing)
-                       : __builtin_ctzll(board.blackKing);
-
-    // Ensure both kings exist
-    if (board.whiteKing == 0 || board.blackKing == 0)
-        return false;
+    int kingSq = white ? __builtin_ctzll(board.whiteKing) : __builtin_ctzll(board.blackKing);
 
     // Collect all pieces
     uint64_t allPieces = (board.whitePawns | board.whiteKnights | board.whiteBishops |
@@ -485,9 +480,9 @@ bool isLegalMoveState(const BoardState& board) {
 
     // Check for attacks on the king
     if (white) {
-        if (blackPawnAttacks[kingSq] & oppPawns) return false;
+        if (blackPawnAttacks[kingSq + 16] & oppPawns) return false;
     } else {
-        if (whitePawnAttacks[kingSq] & oppPawns) return false;
+        if (whitePawnAttacks[kingSq - 16] & oppPawns) return false;
     }
 
     if (knightAttacks[kingSq] & oppKnights) return false;
@@ -508,7 +503,7 @@ MoveList generateLegalMoves(const BoardState& board) {
     for (auto& move : pseudo.moves) {
         BoardState newBoard = board;
         applyMove(newBoard, move);
-
+        
         // Ensure mover didn't leave king in check
         if (isLegalMoveState(newBoard))
             legal.moves.push_back(move);
