@@ -163,7 +163,7 @@ std::string bitboardsToFEN(const BoardState& board); // implement in parsing.cpp
 // --------------------------------------------------
 int main() {
     std::string mode;
-    std::cout << "Enter mode (1: Engine Test, 2: GUI): ";
+    std::cout << "Enter mode (1: Engine Test, 2: GUI, 3: self-play): ";
     std::getline(std::cin, mode);
 
     // Get initial FEN and setup board
@@ -182,13 +182,13 @@ int main() {
     }
 
     // Mode 2: GUI
-    int playerChoice = 1;
-    std::cout << "Play as (1=White, 2=Black). Default 1: ";
+    int playerChoice = 0;
+    std::cout << "Play as (0=White, 1=Black). Default 0: ";
     std::string input;
     std::getline(std::cin, input);
     if (!input.empty()) {
-        try { playerChoice = std::stoi(input); } catch (...) { playerChoice = 1; }
-        if (playerChoice != 1 && playerChoice != 2) playerChoice = 1;
+        try { playerChoice = std::stoi(input); } catch (...) { playerChoice = 0; }
+        if (playerChoice != 0 && playerChoice != 1) playerChoice = 0;
     }
 
     // Initialize SFML window
@@ -230,9 +230,11 @@ int main() {
             // --------------------------------------------------
             // Human turn
             // --------------------------------------------------
-            bool humanTurn = (playerChoice == 1 && board.whiteToMove) || (playerChoice == 2 && !board.whiteToMove);
+            
+            bool humanTurn = (playerChoice == 0 && board.whiteToMove) || (playerChoice == 1 && !board.whiteToMove);
 
             if (humanTurn) {
+                if (mode == "3")break; // skip human input in self-play mode
                 BoardState tempBoard = board;
                 MoveList legalMoves = generateLegalMoves(tempBoard);
 
@@ -259,6 +261,7 @@ int main() {
                         int toRow = row;
                         int toCol = col;
 
+                        // Construct UCI move
                         if (fromRow == toRow && fromCol == toCol) { selectedPiece = nullptr; selectedIndex = -1; continue; }
 
                         char promotion = '\0';
@@ -304,11 +307,15 @@ int main() {
 
                         // Change the icon if there is promotion
                         if (mv.promotion != '\0') {
-                            char promoChar = (board.whiteToMove) ? mv.promotion : static_cast<char>(std::tolower(static_cast<unsigned char>(mv.promotion)));
+                            bool whitePromoting = std::isupper(selectedPiece->type);
+                            char promoChar = whitePromoting ? mv.promotion
+                                                            : static_cast<char>(std::tolower(mv.promotion));
+
                             selectedPiece->type = promoChar;
                             selectedPiece->sprite.setTexture(textures.at(promoChar));
                         }
 
+                        // Handle captures
                         if (captureIdx != -1 && captureIdx != selectedIndex) {
                             if (captureIdx < selectedIndex) { pieces.erase(pieces.begin() + captureIdx); selectedIndex--; }
                             else pieces.erase(pieces.begin() + captureIdx);
@@ -332,7 +339,9 @@ int main() {
         // --------------------------------------------------
         // Engine turn
         // --------------------------------------------------
-        bool engineTurn = !((playerChoice == 1 && board.whiteToMove) || (playerChoice == 2 && !board.whiteToMove));
+        bool engineTurn = false;
+        if(mode == "3") engineTurn = true;
+        else engineTurn = !((playerChoice == 0 && board.whiteToMove) || (playerChoice == 1 && !board.whiteToMove));
         if (engineTurn) {
             std::string fenNow = bitboardsToFEN(board);
             std::string engineMoveUCI = engine("2", fenNow, board);
@@ -362,7 +371,8 @@ int main() {
 
                         // Handle promotion
                         if (mv.promotion != '\0') {
-                            char promoChar = (board.whiteToMove) ? mv.promotion : static_cast<char>(std::tolower(static_cast<unsigned char>(mv.promotion)));
+                            bool whitePromoting = std::isupper(pieces[idx].type);
+                            char promoChar = whitePromoting ? mv.promotion : static_cast<char>(std::tolower(mv.promotion));
                             pieces[idx].type = promoChar;
                             pieces[idx].sprite.setTexture(textures.at(promoChar));
                         }
