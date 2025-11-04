@@ -631,6 +631,16 @@ int king_safety_score(const BoardState& board, GamePhase phase) {
     return whiteScore - blackScore;
 }
 
+// half-move evaluation function, to enforece the half move clock rule
+int halfmove_evaluation(const BoardState& board) {
+    // Check the half-move clock and impose a huge penalty if the next move does not reset it
+    const int HALF_MOVE_PENALTY = 10000; // Large penalty value
+    if (board.halfmoveClock >= 100) { // 50 full moves = 100 half moves
+        return board.whiteToMove ? -HALF_MOVE_PENALTY : HALF_MOVE_PENALTY;
+    }
+    return 0; // No penalty
+}
+
 ///////////// Main Evaluation Function /////////////
 int evaluateBoard(const BoardState& board) {
     // --- 1. Υπολογισμός game phase ---

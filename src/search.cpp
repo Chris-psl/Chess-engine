@@ -22,7 +22,7 @@
  * @depth: Depth of the search tree.
  * maximizingPlayer: True for the AI player, false for the opponent.
  */
-int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {\
+int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {
     // Generate all possible moves for the current player
     //initAttackTables();
 
