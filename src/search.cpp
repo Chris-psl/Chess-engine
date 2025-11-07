@@ -21,8 +21,64 @@
  * @board: Current state of the chess board.
  * @depth: Depth of the search tree.
  * maximizingPlayer: True for the AI player, false for the opponent.
+ * The function is an implementation of the Min-Max algorithm with Alpha-Beta pruning.
+ * Function call: int bestEval = minimax(board, depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), true);
  */
-int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {
+int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
+    // If reached maximum depth or terminal state, evaluate board
+    if (depth == 0) {
+        return evaluateBoard(board);
+    }
+
+    MoveList moves = generateLegalMoves(board);
+
+    // If no legal moves (checkmate or stalemate), evaluate board directly
+    if (moves.moves.empty()) {
+        return evaluateBoard(board);
+    }
+
+    if (isMaximizingPlayer) {
+        int maxEval = std::numeric_limits<int>::min();
+        for (const auto& move : moves.moves) {
+            BoardState newBoard = board;
+            applyMove(newBoard, move);
+
+            int eval = minimax(newBoard, depth - 1, alpha, beta, false);
+            maxEval = std::max(maxEval, eval);
+            alpha = std::max(alpha, eval);
+
+            // --- Alpha-Beta Pruning ---
+            if (beta <= alpha)
+                break;
+        }
+        return maxEval;
+    } else {
+        int minEval = std::numeric_limits<int>::max();
+        for (const auto& move : moves.moves) {
+            BoardState newBoard = board;
+            applyMove(newBoard, move);
+
+            int eval = minimax(newBoard, depth - 1, alpha, beta, true);
+            minEval = std::min(minEval, eval);
+            beta = std::min(beta, eval);
+
+            // --- Alpha-Beta Pruning ---
+            if (beta <= alpha)
+                break;
+        }
+        return minEval;
+    }
+}
+
+
+
+/**
+ * Regular Min-Max function without alpha-beta pruning.
+ * @board: Current state of the chess board.
+ * @depth: Depth of the search tree.
+ * @isMaximizingPlayer: True for the AI player, false for the opponent.
+ */
+ int minimax(BoardState& board, int depth, bool isMaximizingPlayer) {
     // Generate all possible moves for the current player
     //initAttackTables();
 

@@ -139,7 +139,8 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
                     return {m, std::numeric_limits<int>::min()};
                 }
 
-                int eval = minimax(newBoard, 3, false);
+                // int eval = minimax(newBoard, 3, false);
+                int eval = minimax(newBoard, 5, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), false);
                 return {m, eval};
             }));
         }

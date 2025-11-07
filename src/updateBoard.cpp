@@ -170,23 +170,61 @@ void applyMove(BoardState& board, const Move& move) {
         }
     }
 
-    // === 6) Castling rook movement ===
-    if (movedPiece == KING && move.isCastling) {
+     // === 6) Castling rook movement ===
+    if (movedPiece == KING && (move.isCastling || abs(move.to - move.from) == 2)) {
+        // Determine castling by the king moving two squares.
+        // Use explicit squares so there's no ambiguity.
+        const int WHITE_KING_FROM = 4;  // e1
+        const int BLACK_KING_FROM = 60; // e8
+        const int WHITE_KINGSIDE_ROOK_FROM = 7;  // h1
+        const int WHITE_QUEENSIDE_ROOK_FROM = 0; // a1
+        const int BLACK_KINGSIDE_ROOK_FROM = 63; // h8
+        const int BLACK_QUEENSIDE_ROOK_FROM = 56; // a8
+
         if (white) {
-            if (move.to == 6) {      // White O-O
-                myRooks &= ~(1ULL << 7);
-                myRooks |=  (1ULL << 5);
-            } else if (move.to == 2) { // White O-O-O
-                myRooks &= ~(1ULL << 0);
-                myRooks |=  (1ULL << 3);
+            // White king-side: e1 -> g1 (4 -> 6)
+            if (move.to == 6 && move.from == WHITE_KING_FROM) {
+                // Ensure rook exists before moving (defensive)
+                if (GET_BIT(myRooks, WHITE_KINGSIDE_ROOK_FROM)) {
+                    myRooks &= ~(1ULL << WHITE_KINGSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 5); // h1 -> f1 (7 -> 5)
+                } else {
+                    // Defensive fallback: try to find rook on expected file rank
+                    // (optional) -- don't crash; just attempt to move rook from 7->5 anyway
+                    myRooks &= ~(1ULL << WHITE_KINGSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 5);
+                }
+            }
+            // White queen-side: e1 -> c1 (4 -> 2)
+            else if (move.to == 2 && move.from == WHITE_KING_FROM) {
+                if (GET_BIT(myRooks, WHITE_QUEENSIDE_ROOK_FROM)) {
+                    myRooks &= ~(1ULL << WHITE_QUEENSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 3); // a1 -> d1 (0 -> 3)
+                } else {
+                    myRooks &= ~(1ULL << WHITE_QUEENSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 3);
+                }
             }
         } else {
-            if (move.to == 62) {      // Black O-O
-                myRooks &= ~(1ULL << 63);
-                myRooks |=  (1ULL << 61);
-            } else if (move.to == 58) { // Black O-O-O
-                myRooks &= ~(1ULL << 56);
-                myRooks |=  (1ULL << 59);
+            // Black king-side: e8 -> g8 (60 -> 62)
+            if (move.to == 62 && move.from == BLACK_KING_FROM) {
+                if (GET_BIT(myRooks, BLACK_KINGSIDE_ROOK_FROM)) {
+                    myRooks &= ~(1ULL << BLACK_KINGSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 61); // h8 -> f8 (63 -> 61)
+                } else {
+                    myRooks &= ~(1ULL << BLACK_KINGSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 61);
+                }
+            }
+            // Black queen-side: e8 -> c8 (60 -> 58)
+            else if (move.to == 58 && move.from == BLACK_KING_FROM) {
+                if (GET_BIT(myRooks, BLACK_QUEENSIDE_ROOK_FROM)) {
+                    myRooks &= ~(1ULL << BLACK_QUEENSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 59); // a8 -> d8 (56 -> 59)
+                } else {
+                    myRooks &= ~(1ULL << BLACK_QUEENSIDE_ROOK_FROM);
+                    myRooks |=  (1ULL << 59);
+                }
             }
         }
     }
@@ -199,7 +237,9 @@ void applyMove(BoardState& board, const Move& move) {
 }
 
 
-// // dump
+// ============================================================================
+// Second implementation
+// ============================================================================
 
 // // updateBoard.cpp - Functions to update the board state and apply moves
 
@@ -373,61 +413,23 @@ void applyMove(BoardState& board, const Move& move) {
 //         }
 //     }
 
-//      // === 6) Castling rook movement ===
-//     if (movedPiece == KING && (move.isCastling || abs(move.to - move.from) == 2)) {
-//         // Determine castling by the king moving two squares.
-//         // Use explicit squares so there's no ambiguity.
-//         const int WHITE_KING_FROM = 4;  // e1
-//         const int BLACK_KING_FROM = 60; // e8
-//         const int WHITE_KINGSIDE_ROOK_FROM = 7;  // h1
-//         const int WHITE_QUEENSIDE_ROOK_FROM = 0; // a1
-//         const int BLACK_KINGSIDE_ROOK_FROM = 63; // h8
-//         const int BLACK_QUEENSIDE_ROOK_FROM = 56; // a8
-
+//     // === 6) Castling rook movement ===
+//     if (movedPiece == KING && move.isCastling) {
 //         if (white) {
-//             // White king-side: e1 -> g1 (4 -> 6)
-//             if (move.to == 6 && move.from == WHITE_KING_FROM) {
-//                 // Ensure rook exists before moving (defensive)
-//                 if (GET_BIT(myRooks, WHITE_KINGSIDE_ROOK_FROM)) {
-//                     myRooks &= ~(1ULL << WHITE_KINGSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 5); // h1 -> f1 (7 -> 5)
-//                 } else {
-//                     // Defensive fallback: try to find rook on expected file rank
-//                     // (optional) -- don't crash; just attempt to move rook from 7->5 anyway
-//                     myRooks &= ~(1ULL << WHITE_KINGSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 5);
-//                 }
-//             }
-//             // White queen-side: e1 -> c1 (4 -> 2)
-//             else if (move.to == 2 && move.from == WHITE_KING_FROM) {
-//                 if (GET_BIT(myRooks, WHITE_QUEENSIDE_ROOK_FROM)) {
-//                     myRooks &= ~(1ULL << WHITE_QUEENSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 3); // a1 -> d1 (0 -> 3)
-//                 } else {
-//                     myRooks &= ~(1ULL << WHITE_QUEENSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 3);
-//                 }
+//             if (move.to == 6) {      // White O-O
+//                 myRooks &= ~(1ULL << 7);
+//                 myRooks |=  (1ULL << 5);
+//             } else if (move.to == 2) { // White O-O-O
+//                 myRooks &= ~(1ULL << 0);
+//                 myRooks |=  (1ULL << 3);
 //             }
 //         } else {
-//             // Black king-side: e8 -> g8 (60 -> 62)
-//             if (move.to == 62 && move.from == BLACK_KING_FROM) {
-//                 if (GET_BIT(myRooks, BLACK_KINGSIDE_ROOK_FROM)) {
-//                     myRooks &= ~(1ULL << BLACK_KINGSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 61); // h8 -> f8 (63 -> 61)
-//                 } else {
-//                     myRooks &= ~(1ULL << BLACK_KINGSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 61);
-//                 }
-//             }
-//             // Black queen-side: e8 -> c8 (60 -> 58)
-//             else if (move.to == 58 && move.from == BLACK_KING_FROM) {
-//                 if (GET_BIT(myRooks, BLACK_QUEENSIDE_ROOK_FROM)) {
-//                     myRooks &= ~(1ULL << BLACK_QUEENSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 59); // a8 -> d8 (56 -> 59)
-//                 } else {
-//                     myRooks &= ~(1ULL << BLACK_QUEENSIDE_ROOK_FROM);
-//                     myRooks |=  (1ULL << 59);
-//                 }
+//             if (move.to == 62) {      // Black O-O
+//                 myRooks &= ~(1ULL << 63);
+//                 myRooks |=  (1ULL << 61);
+//             } else if (move.to == 58) { // Black O-O-O
+//                 myRooks &= ~(1ULL << 56);
+//                 myRooks |=  (1ULL << 59);
 //             }
 //         }
 //     }
