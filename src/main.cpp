@@ -2,9 +2,10 @@
 // castling test: r4kr1/8/8/8/8/8/8/R3K2R w KQ - 0 1
 // castling test: p4k1p/8/8/8/8/8/8/R3K2R w KQ - 0 1
 // castling for black: r3k2r/8/8/8/8/8/8/R4KR1 b kq - 0 1
-// en passant test: 8/8/8/3pP3/8/8/8/4k3 b - e3 0 1
+// en passant test: 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1
 // mat test: 6k1/5ppp/8/8/3PPP11/4K3/3P4/8 w - - 0 1
 // king move gen test: 3k2r1/8/8/8/8/8/8/4K3 b k - 0 1
+// Attack on king by pawn test: 8/8/4k3/3P4/8/8/4K3/8 w - - 0 1
 
 #include <SFML/Graphics.hpp>
 #include <string>

@@ -21,6 +21,15 @@ std::string squareToString(int sq) {
     return {file, rank};
 }
 
+/**
+ * Macros for bitboard manipulation
+ * - GET_BIT(bb, sq): returns 1 if bit at `sq` is set in `bb`
+ */
+static inline uint64_t BIT(int sq) {
+    return (sq >= 0 && sq < 64) ? (1ULL << sq) : 0ULL;
+}
+
+
 // ============================================================================
 //  SECTION 1: GLOBAL ATTACK TABLES
 // ============================================================================
@@ -215,14 +224,14 @@ MoveList generateMoves(const BoardState& board) {
 
             // Forward moves
             int oneStep = from + 8;
-            if (!(allPieces & (1ULL << oneStep))) {
+            if (!(allPieces & BIT(oneStep))) {
                 assert(oneStep < 64);
                 if (rank == 6) {
                     for (char p : {'Q','R','B','N'})
                         addMove(from, oneStep, p, false, false, false);
                 } else {
                     addMove(from, oneStep, '\0', false, false, false);
-                    if (rank == 1 && !(allPieces & (1ULL << (from + 16)))){
+                    if (rank == 1 && !(allPieces & BIT(from + 16))) {
                         addMove(from, from + 16, '\0', false, false, false);            
                     }
                 }
@@ -232,7 +241,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t caps = whitePawnAttacks[from] & oppPieces;
             while (caps) {
                 int to = POP_LSB(caps);
-                if(!(board.blackKing & (1ULL << to))) { // cannot capture king
+                if(!(board.blackKing & BIT(to))) { // cannot capture king
                     if (rank == 6)
                         for (char p : {'Q','R','B','N'})
                             addMove(from, to, p, true, false, false);
@@ -244,15 +253,12 @@ MoveList generateMoves(const BoardState& board) {
 
         // En passant captures
         if (board.enPassantSquare != -1) {
-            int from1 = board.enPassantSquare - 9;
-            int from2 = board.enPassantSquare - 7;
-            
-            if(GET_BIT(board.whitePawns, from1)) {
-                addMove(from1, board.enPassantSquare, '\0', true, true, false);
-            }
-            if(GET_BIT(board.whitePawns, from2)) {
-                addMove(from2, board.enPassantSquare, '\0', true, true, false);
-            }
+            int ep = board.enPassantSquare;
+            int from1 = ep - 9, from2 = ep - 7;
+            if (from1 >= 0 && from1 < 64 && GET_BIT(board.whitePawns, from1))
+                addMove(from1, ep, '\0', true, true, false);
+            if (from2 >= 0 && from2 < 64 && GET_BIT(board.whitePawns, from2))
+                addMove(from2, ep, '\0', true, true, false);
         }
 
 
@@ -263,9 +269,9 @@ MoveList generateMoves(const BoardState& board) {
             if (board.castlingRights.find('K') != std::string::npos) {
                 if (!GET_BIT(allPieces, 5) && !GET_BIT(allPieces, 6)) {
                     // Check squares are not under attack
-                    if (!(result.blackAttacks & (1ULL << 4)) &&
-                        !(result.blackAttacks & (1ULL << 5)) &&
-                        !(result.blackAttacks & (1ULL << 6))) {
+                    if (!(result.blackAttacks & BIT(4)) &&
+                        !(result.blackAttacks & BIT(5)) &&
+                        !(result.blackAttacks & BIT(6))) {
                         addMove(kingFrom, 6, '\0', false, false, true);
                     }
                 }
@@ -274,9 +280,9 @@ MoveList generateMoves(const BoardState& board) {
             if (board.castlingRights.find('Q') != std::string::npos) {
                 if (!GET_BIT(allPieces, 1) && !GET_BIT(allPieces, 2) && !GET_BIT(allPieces, 3)) {
                     // Check squares are not under attack
-                    if (!(result.blackAttacks & (1ULL << 4)) &&
-                        !(result.blackAttacks & (1ULL << 3)) &&
-                        !(result.blackAttacks & (1ULL << 2))) {
+                    if (!(result.blackAttacks & BIT(4)) &&
+                        !(result.blackAttacks & BIT(3)) &&
+                        !(result.blackAttacks & BIT(2))) {
                         addMove(kingFrom, 2, '\0', false, false, true);
                     }
                 }
@@ -291,7 +297,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t moves = knightAttacks[from] & ~ownPieces;
             while (moves) {
                 int to = POP_LSB(moves);
-                if(!(board.blackKing & (1ULL << to))){ // cannot capture king
+                if(!(board.blackKing & BIT(to))){ // cannot capture king
                     addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
                 }
             }
@@ -305,7 +311,7 @@ MoveList generateMoves(const BoardState& board) {
                 uint64_t attacks = attackFn(from, allPieces) & ~ownPieces;
                 while (attacks) {
                     int to = POP_LSB(attacks);
-                    if(!(board.blackKing & (1ULL << to))) { // cannot capture king
+                    if(!(board.blackKing & BIT(to))) { // cannot capture king
                         addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
                     }
                 }
@@ -321,7 +327,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
             while (kingMoves) {
                 int to = POP_LSB(kingMoves);
-                if(!(board.blackKing & (1ULL << to))){ // cannot capture king
+                if(!(board.blackKing & BIT(to))){ // cannot capture king
                     addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
                 }
             }
@@ -342,13 +348,13 @@ MoveList generateMoves(const BoardState& board) {
             // Forward moves
             int oneStep = from - 8;
             assert(oneStep >= 0);
-            if (!(allPieces & (1ULL << oneStep))) {
+            if (!(allPieces & BIT(oneStep))) {
                 if (rank == 1) {
                     for (char p : {'q','r','b','n'})
                         addMove(from, oneStep, p, false, false, false);
                 } else {
                     addMove(from, oneStep, '\0', false, false, false);
-                    if (rank == 6 && !(allPieces & (1ULL << (from - 16))))
+                    if (rank == 6 && !(allPieces & BIT(from - 16)))
                         addMove(from, from - 16, '\0', false, false, false);
                 }
             }
@@ -357,7 +363,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t caps = blackPawnAttacks[from] & oppPieces;
             while (caps) {
                 int to = POP_LSB(caps);
-                if (!(board.whiteKing & 1ULL<<to)){
+                if (!(board.whiteKing & BIT(to))){
                     if (rank == 1)
                         for (char p : {'q','r','b','n'})
                             addMove(from, to, p, true, false, false);
@@ -387,9 +393,9 @@ MoveList generateMoves(const BoardState& board) {
             if (board.castlingRights.find('k') != std::string::npos) {
                 if (!GET_BIT(allPieces, 61) && !GET_BIT(allPieces, 62)) {
                     // Check squares are not under attack
-                    if (!(result.whiteAttacks & (1ULL << 60)) &&
-                        !(result.whiteAttacks & (1ULL << 61)) &&
-                        !(result.whiteAttacks & (1ULL << 62))) {
+                    if (!(result.whiteAttacks & BIT(60)) &&
+                        !(result.whiteAttacks & BIT(61)) &&
+                        !(result.whiteAttacks & BIT(62))) {
                         addMove(kingFrom, 62, '\0', false, false, true);
                     }
                 }
@@ -398,9 +404,9 @@ MoveList generateMoves(const BoardState& board) {
             if (board.castlingRights.find('q') != std::string::npos) {
                 if (!GET_BIT(allPieces, 57) && !GET_BIT(allPieces, 58) && !GET_BIT(allPieces, 59)) {
                     // Check squares are not under attack
-                    if (!(result.whiteAttacks & (1ULL << 60)) &&
-                        !(result.whiteAttacks & (1ULL << 59)) &&
-                        !(result.whiteAttacks & (1ULL << 58))) {
+                    if (!(result.whiteAttacks & BIT(60)) &&
+                        !(result.whiteAttacks & BIT(59)) &&
+                        !(result.whiteAttacks & BIT(58))) {
                         addMove(kingFrom, 58, '\0', false, false, true);
                     }
                 }
@@ -414,7 +420,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t moves = knightAttacks[from] & ~ownPieces;
             while (moves) {
                 int to = POP_LSB(moves);
-                if(!(board.whiteKing & 1ULL<< to))
+                if(!(board.whiteKing & BIT(to)))
                     addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
             }
         }
@@ -427,7 +433,7 @@ MoveList generateMoves(const BoardState& board) {
                 uint64_t attacks = attackFn(from, allPieces) & ~ownPieces;
                 while (attacks) {
                     int to = POP_LSB(attacks);
-                    if(!(board.whiteKing & 1ULL<< to))
+                    if(!(board.whiteKing & BIT(to)))
                     addMove(from, to, '\0', GET_BIT(oppPieces, to), false, false);
                 }
             }
@@ -442,7 +448,7 @@ MoveList generateMoves(const BoardState& board) {
             uint64_t kingMoves = kingAttacks[kingSq] & ~ownPieces;
             while (kingMoves) {
                 int to = POP_LSB(kingMoves);
-                if(!(board.whiteKing & 1ULL<< to))
+                if(!(board.whiteKing & BIT(to)))
                 addMove(kingSq, to, '\0', GET_BIT(oppPieces, to), false, false);
             }
         }
@@ -479,11 +485,41 @@ bool isLegalMoveState(const BoardState& board) {
     uint64_t oppKing    = white ? board.blackKing    : board.whiteKing;
 
     // Check for attacks on the king
+    // kingSq is 0..63
+    auto pawnAttacksTo = [&](int attackerIsWhite, int targetSq)->uint64_t {
+        // return bitboard of pawn squares (attacker color) that attack targetSq
+        uint64_t res = 0ULL;
+        int r = targetSq / 8, f = targetSq % 8;
+        if (attackerIsWhite) {
+            // white pawns attack up-left and up-right (from lower rank to higher)
+            if (r - 1 >= 0) {
+                if (f - 1 >= 0) res |= BIT((r - 1) * 8 + (f - 1));
+                if (f + 1 <= 7) res |= BIT((r - 1) * 8 + (f + 1));
+            }
+        } else {
+            // black pawns attack down-left and down-right (from higher rank to lower)
+            if (r + 1 <= 7) {
+                if (f - 1 >= 0) res |= BIT((r + 1) * 8 + (f - 1));
+                if (f + 1 <= 7) res |= BIT((r + 1) * 8 + (f + 1));
+            }
+        }
+        return res;
+    };
+
+    // In isLegalMoveState:
     if (white) {
-        if (blackPawnAttacks[kingSq + 16] & oppPawns) return false;
+        // side that just moved is white -> check if any black pawn attacks white king
+        if (pawnAttacksTo(/*attackerIsWhite=*/false, kingSq) & oppPawns) return false;
     } else {
-        if (whitePawnAttacks[kingSq - 16] & oppPawns) return false;
+        if (pawnAttacksTo(/*attackerIsWhite=*/true, kingSq) & oppPawns) return false;
     }
+
+    // Alternative simpler check (commented out)
+    // if (white) {
+    //     if (blackPawnAttacks[kingSq + 16] & oppPawns) return false;
+    // } else {
+    //     if (whitePawnAttacks[kingSq - 16] & oppPawns) return false;
+    // }
 
     if (knightAttacks[kingSq] & oppKnights) return false;
     if (bishopAttacks(kingSq, allPieces) & (oppBishops | oppQueens)) return false;
