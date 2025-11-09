@@ -6,6 +6,7 @@
 // mat test: 6k1/5ppp/8/8/3PPP11/4K3/3P4/8 w - - 0 1
 // king move gen test: 3k2r1/8/8/8/8/8/8/4K3 b k - 0 1
 // Attack on king by pawn test: 8/8/4k3/3P4/8/8/4K3/8 w - - 0 1
+// King defense test: 4k3/8/8/8/7q/8/6P1/4K3 w - - 0 1
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -246,6 +247,17 @@ int main() {
                     window.close();
                     break;
                 }
+
+                // if legal moves are less than 10 print them for debug
+                if(legalMoves.moves.size() <= 10) {
+                    std::cout << "Legal moves:\n";
+                    for (const auto& lm : legalMoves.moves) {
+                        // std::string lmUci = getMoveString(lm.from / 8, lm.from % 8, lm.to / 8, lm.to % 8, lm.promotion);
+                        // std::cout << lmUci << " ";
+                        std::cout << squareToString(lm.from) << squareToString(lm.to) << "\n";
+                    }
+                    std::cout << "\n";
+                }
             
 
                 // Handle piece selection and movement
@@ -267,7 +279,10 @@ int main() {
                         if (fromRow == toRow && fromCol == toCol) { selectedPiece = nullptr; selectedIndex = -1; continue; }
 
                         char promotion = '\0';
-                        if ((selectedPiece->type == 'P' && toRow == 0) || (selectedPiece->type == 'p' && toRow == 7)) promotion = 'Q';
+                        if (selectedPiece->type == 'P' && toRow == 7) promotion = 'Q';
+                        else if (selectedPiece->type == 'p' && toRow == 0) promotion = 'q';
+
+
                         std::string uci = getMoveString(fromRow, fromCol, toRow, toCol, promotion);
 
                         auto maybeMove = uciToMove(uci);
@@ -292,16 +307,6 @@ int main() {
                             selectedPiece = nullptr;
                             selectedIndex = -1;
                             continue;
-                        }
-
-                        // if legal moves are less than 4 print them for debug
-                        if(legalMoves.moves.size() <= 4) {
-                            std::cout << "Legal moves:\n";
-                            for (const auto& lm : legalMoves.moves) {
-                                std::string lmUci = getMoveString(lm.from / 8, lm.from % 8, lm.to / 8, lm.to % 8, lm.promotion);
-                                std::cout << lmUci << " ";
-                            }
-                            std::cout << "\n";
                         }
 
                         // Apply move to board state

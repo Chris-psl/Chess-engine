@@ -15,6 +15,42 @@
 //  SECTION 1: MIN-MAX SEARCH ALGORITHM
 // ============================================================================
 
+/**
+ * quiescence - Extends the search at leaf nodes to avoid horizon effect.
+ * @board: Current state of the chess board.
+ * @alpha: Alpha value for alpha-beta pruning.
+ * @beta: Beta value for alpha-beta pruning.
+ * The function explores only capture moves to stabilize the evaluation.
+ */
+int quiescence(BoardState& board, int alpha, int beta) {
+    int stand_pat = evaluateBoard(board);
+
+    // Alpha-beta pruning check
+    if (stand_pat >= beta)
+        return beta;
+    if (alpha < stand_pat)
+        alpha = stand_pat;
+
+    // Generate only capture moves (to extend tactical lines)
+    board.genVolatile = true;
+    MoveList captureMoves = generateLegalMoves(board);
+    board.genVolatile = false;
+
+    for (const auto& move : captureMoves.moves) {
+        BoardState newBoard = board;
+        applyMove(newBoard, move);
+
+        int score = -quiescence(newBoard, -beta, -alpha); // negamax-style symmetry
+
+        if (score >= beta)
+            return beta;
+        if (score > alpha)
+            alpha = score;
+    }
+
+    return alpha;
+}
+
 
 /**
  * minimax - Implements the Min-Max algorithm to evaluate the best move.
@@ -27,7 +63,8 @@
 int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
     // If reached maximum depth or terminal state, evaluate board
     if (depth == 0) {
-        return evaluateBoard(board);
+        //return evaluateBoard(board);
+        return quiescence(board, alpha, beta);
     }
 
     MoveList moves = generateLegalMoves(board);

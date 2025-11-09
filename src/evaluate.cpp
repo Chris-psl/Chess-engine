@@ -641,6 +641,18 @@ int halfmove_evaluation(const BoardState& board) {
     return 0; // No penalty
 }
 
+// Huge bonus for checkmate
+int checkmate_evaluation(const BoardState& board) {
+    const int CHECKMATE_BONUS = 100000; // Large bonus value
+    BoardState tempBoard = board;
+    tempBoard.whiteToMove = !board.whiteToMove; // Switch turn to opponent
+    MoveList moves = generateLegalMoves(tempBoard);
+    if (moves.moves.size() == 0 && !isLegalMoveState(tempBoard)) { // No legal moves for opponent
+        return CHECKMATE_BONUS; // Current player wins
+    }
+    return 0; // No bonus
+}
+
 ///////////// Main Evaluation Function /////////////
 int evaluateBoard(const BoardState& board) {
     // --- 1. Υπολογισμός game phase ---
@@ -663,13 +675,21 @@ int evaluateBoard(const BoardState& board) {
     //std::cout << "evaluating king safety..." << std::endl;
     int kingScore = king_safety_score(board, phase);
 
-    // --- 7. Συνδυασμός όλων των scores ---
+    // --- 6. Half-move clock ----
+    int halfmoveScore = halfmove_evaluation(board);
+
+    // --- 7. Checkmate evaluation ---
+    int checkmateScore = checkmate_evaluation(board);
+
+    // --- 8. Συνδυασμός όλων των scores ---
     // Μπορούμε να δώσουμε βάρη ανάλογα με τη σημασία τους
     double finalScore =
         material       * 1.5 +  // υλικό
         pstScore       * 0.8 +  // piece-square tables
         pawnScore      * 0.5 +  // δομή πιονιών
-        kingScore      * 0.7   // ασφάλεια βασιλιά
+        kingScore      * 0.7 +  // ασφάλεια βασιλιά
+        halfmoveScore  * 0.6 +  // μισή κίνηση
+        checkmateScore * 1.0    // ματ
     ;
     // --- 8. Προσαρμογή ανάλογα με ποιος παίζει ---
     if (!board.whiteToMove)

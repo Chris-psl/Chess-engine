@@ -26,6 +26,7 @@ struct BoardState {
     int enPassantSquare;         // Indicates the square where an en passant capture is possible, -1 if none.
     int halfmoveClock;           // Used for 50-move rule (the game is draw if 50 halfmoves without pawn movement or capture).
     int fullmoveNumber;          // Counts the number of full moves in the game.
+    bool genVolatile = false;   // Tells the movegen funtion to generate volatile moves
 };
 
 // Convert BoardState to FEN string

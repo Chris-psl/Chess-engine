@@ -164,6 +164,9 @@ uint64_t queenAttacks(int sq, uint64_t blockers) {
 //  SECTION 4: CORE MOVE GENERATION
 // ============================================================================
 
+/*
+ * Generates all attacks for the given board state.
+ */
 MoveList generateMoves(const BoardState& board) {
     MoveList result;
 
@@ -208,19 +211,48 @@ MoveList generateMoves(const BoardState& board) {
     /**
      * Helper to add a move to the move list.
      */
+    std::vector<Move> captures;
+    std::vector<Move> quiets;
     auto addMove = [&](int from, int to, char promo, bool capture, bool ep, bool castle) {
-    result.moves.push_back({from, to, promo, capture, ep, castle});
+        Move m = {from, to, promo, capture, ep, castle};
+        if (capture || ep || promo != '\0')
+            captures.push_back(m);
+        else if(!board.genVolatile)
+            quiets.push_back(m);
     };
     
     // ------------------------------
     // WHITE TO MOVE
     // ------------------------------
     if (white) {
+        // En passant captures
+        if (board.enPassantSquare != -1) {
+            int ep = board.enPassantSquare;
+            int from1 = ep - 9, from2 = ep - 7;
+            if (from1 >= 0 && from1 < 64 && GET_BIT(board.whitePawns, from1))
+                addMove(from1, ep, '\0', true, true, false);
+            if (from2 >= 0 && from2 < 64 && GET_BIT(board.whitePawns, from2))
+                addMove(from2, ep, '\0', true, true, false);
+        }
+
         // ---- Pawn moves ----
         uint64_t pawns = board.whitePawns;
         while (pawns) {
             int from = POP_LSB(pawns);
             int rank = from / 8;
+
+            // Captures
+            uint64_t caps = whitePawnAttacks[from] & oppPieces;
+            while (caps) {
+                int to = POP_LSB(caps);
+                if(!(board.blackKing & BIT(to))) { // cannot capture king
+                    if (rank == 6)
+                        for (char p : {'Q','R','B','N'})
+                            addMove(from, to, p, true, false, false);
+                    else
+                        addMove(from, to, '\0', true, false, false);
+                }
+            }
 
             // Forward moves
             int oneStep = from + 8;
@@ -236,31 +268,7 @@ MoveList generateMoves(const BoardState& board) {
                     }
                 }
             }
-
-            // Captures
-            uint64_t caps = whitePawnAttacks[from] & oppPieces;
-            while (caps) {
-                int to = POP_LSB(caps);
-                if(!(board.blackKing & BIT(to))) { // cannot capture king
-                    if (rank == 6)
-                        for (char p : {'Q','R','B','N'})
-                            addMove(from, to, p, true, false, false);
-                    else
-                        addMove(from, to, '\0', true, false, false);
-                }
-            }
         }
-
-        // En passant captures
-        if (board.enPassantSquare != -1) {
-            int ep = board.enPassantSquare;
-            int from1 = ep - 9, from2 = ep - 7;
-            if (from1 >= 0 && from1 < 64 && GET_BIT(board.whitePawns, from1))
-                addMove(from1, ep, '\0', true, true, false);
-            if (from2 >= 0 && from2 < 64 && GET_BIT(board.whitePawns, from2))
-                addMove(from2, ep, '\0', true, true, false);
-        }
-
 
         // Function to add castling moves
         if(board.castlingRights != "no_castling") {
@@ -453,6 +461,11 @@ MoveList generateMoves(const BoardState& board) {
             }
         }
     }
+
+    // Combine captures and quiet moves, captures first
+    result.moves.reserve(captures.size() + quiets.size());
+    result.moves.insert(result.moves.end(), captures.begin(), captures.end());
+    result.moves.insert(result.moves.end(), quiets.begin(), quiets.end());
 
     return result;
 }
