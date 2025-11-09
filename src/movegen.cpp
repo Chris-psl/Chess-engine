@@ -5,11 +5,12 @@
 #include "movegen.h"
 #include "parsing.h"
 #include "updateBoard.h"
+
 #include <bitset>
 #include <cassert>
 #include <array>
 #include <iostream>
-
+#include <algorithm>
 
 /**
  * Converts a board index (0..63) to file and rank.
@@ -543,6 +544,48 @@ bool isLegalMoveState(const BoardState& board) {
 }
 
 /**
+ * Move ordering function that prioritizes captures then promotions then quiet moves.
+ * It also sorts captures by MVV-LVA (Most Valuable Victim - Least Valuable Attacker).
+ */
+MoveList orderMoves(const MoveList& moves, const BoardState& board) {
+    MoveList ordered;
+    ordered.moves = moves.moves; // copy moves
+
+    // Simple scoring function for MVV-LVA
+    auto scoreMove = [&](const Move& move) -> int {
+        int score = 0;
+        if (move.isCapture) {
+            // Assign values to pieces for scoring
+            auto pieceValue = [&](int sq) -> int {
+                if (GET_BIT(board.whitePawns | board.blackPawns, sq)) return 100;
+                if (GET_BIT(board.whiteKnights | board.blackKnights, sq)) return 320;
+                if (GET_BIT(board.whiteBishops | board.blackBishops, sq)) return 330;
+                if (GET_BIT(board.whiteRooks | board.blackRooks, sq)) return 500;
+                if (GET_BIT(board.whiteQueens | board.blackQueens, sq)) return 900;
+                return 0; // king or empty
+            };
+            int victimValue = pieceValue(move.to);
+            int attackerValue = pieceValue(move.from);
+            score += (victimValue * 10) - attackerValue; // MVV-LVA
+        }
+        if (move.promotion != '\0') {
+            score += 800; // high score for promotions
+        }
+        return score;
+    };
+
+    // Sort moves based on their scores
+    std::sort(ordered.moves.begin(), ordered.moves.end(),
+              [&](const Move& a, const Move& b) {
+                  return scoreMove(a) > scoreMove(b);
+              });
+
+    return ordered;
+}
+
+
+
+/**
  * Generate all legal moves for the current player.
  */
 MoveList generateLegalMoves(const BoardState& board) {
@@ -558,5 +601,8 @@ MoveList generateLegalMoves(const BoardState& board) {
             legal.moves.push_back(move);
     }
 
+    // Move ordering
+    legal = orderMoves(legal, board);
+    
     return legal;
 }
