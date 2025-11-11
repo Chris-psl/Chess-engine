@@ -27,6 +27,7 @@ struct BoardState {
     int halfmoveClock;           // Used for 50-move rule (the game is draw if 50 halfmoves without pawn movement or capture).
     int fullmoveNumber;          // Counts the number of full moves in the game.
     bool genVolatile = false;   // Tells the movegen funtion to generate volatile moves
+    uint64_t zobristKey;        // Zobrist hash key for the current board state
 };
 
 // Convert BoardState to FEN string

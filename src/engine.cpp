@@ -23,7 +23,10 @@
 #include "tools.h"
 #include "search.h"
 #include "threadPool.h"
+#include "zobrist.h"
+#include "transposition.h"
 
+TranspositionTable TT(64); // 64 MB global TT
 
 // ============================================================================
 //  SECTION 1: Main loop
@@ -122,6 +125,10 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
         // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
+
+        // Initialize Zobrist hashing
+        initZobrist();
+        board.zobristKey = computeZobristKey(board);
 
         //////////////////////// Min-max with thread Pool Implementation ////////////////////////
         size_t numThreads = 11;

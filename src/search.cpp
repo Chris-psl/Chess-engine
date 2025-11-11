@@ -156,3 +156,82 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
         return minEval;
     }
 }
+
+
+// ============================================================================
+// with transposition table
+// ============================================================================
+// int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
+//     extern TranspositionTable TT;  // global TT
+//     TTEntry entry;
+
+//     // --- Transposition Table Lookup ---
+//     if (TT.probe(board.zobristKey, entry)) {
+//         if (entry.depth >= depth) {
+//             if (entry.flag == EXACT) return entry.score;
+//             if (entry.flag == LOWERBOUND && entry.score >= beta) return entry.score;
+//             if (entry.flag == UPPERBOUND && entry.score <= alpha) return entry.score;
+//         }
+//     }
+
+//     int alphaOrig = alpha; // Save original alpha for flag type later
+
+//     // --- Base Case ---
+//     if (depth == 0) {
+//         return quiescence(board, alpha, beta); // or evaluateBoard(board)
+//     }
+
+//     MoveList moves = generateLegalMoves(board);
+//     if (moves.moves.empty()) {
+//         return evaluateBoard(board); // checkmate/stalemate
+//     }
+
+//     int bestEval;
+//     Move bestMove;
+
+//     if (isMaximizingPlayer) {
+//         bestEval = std::numeric_limits<int>::min();
+
+//         for (const auto& move : moves.moves) {
+//             BoardState newBoard = board;
+//             applyMove(newBoard, move);
+
+//             int eval = minimax(newBoard, depth - 1, alpha, beta, false);
+//             if (eval > bestEval) {
+//                 bestEval = eval;
+//                 bestMove = move;
+//             }
+
+//             alpha = std::max(alpha, eval);
+//             if (beta <= alpha) break; // alpha-beta pruning
+//         }
+
+//     } else {
+//         bestEval = std::numeric_limits<int>::max();
+
+//         for (const auto& move : moves.moves) {
+//             BoardState newBoard = board;
+//             applyMove(newBoard, move);
+
+//             int eval = minimax(newBoard, depth - 1, alpha, beta, true);
+//             if (eval < bestEval) {
+//                 bestEval = eval;
+//                 bestMove = move;
+//             }
+
+//             beta = std::min(beta, eval);
+//             if (beta <= alpha) break; // alpha-beta pruning
+//         }
+//     }
+
+//     // --- Determine bound type for storage ---
+//     BoundType flag;
+//     if (bestEval <= alphaOrig) flag = UPPERBOUND;
+//     else if (bestEval >= beta) flag = LOWERBOUND;
+//     else flag = EXACT;
+
+//     // --- Store in Transposition Table ---
+//     TT.store({ board.zobristKey, depth, bestEval, flag, bestMove });
+
+//     return bestEval;
+// }

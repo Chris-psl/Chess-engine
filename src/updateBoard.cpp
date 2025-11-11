@@ -440,3 +440,130 @@ void applyMove(BoardState& board, const Move& move) {
 //     // === 8) Switch side ===
 //     board.whiteToMove = !board.whiteToMove;
 // }
+
+
+// ============================================================================
+// with zobrist hashing
+// ============================================================================
+
+// void applyMove(BoardState& board, const Move& move) {
+//     bool white = board.whiteToMove;
+
+//     // increment halfmove clock
+//     board.halfmoveClock++;
+
+//     // Bitboard references
+//     uint64_t &myPawns   = white ? board.whitePawns   : board.blackPawns;
+//     uint64_t &myKnights = white ? board.whiteKnights : board.blackKnights;
+//     uint64_t &myBishops = white ? board.whiteBishops : board.blackBishops;
+//     uint64_t &myRooks   = white ? board.whiteRooks   : board.blackRooks;
+//     uint64_t &myQueens  = white ? board.whiteQueens  : board.blackQueens;
+//     uint64_t &myKing    = white ? board.whiteKing    : board.blackKing;
+
+//     uint64_t &oppPawns   = white ? board.blackPawns   : board.whitePawns;
+//     uint64_t &oppKnights = white ? board.blackKnights : board.whiteKnights;
+//     uint64_t &oppBishops = white ? board.blackBishops : board.whiteBishops;
+//     uint64_t &oppRooks   = white ? board.blackRooks   : board.whiteRooks;
+//     uint64_t &oppQueens  = white ? board.blackQueens  : board.whiteQueens;
+//     uint64_t &oppKing    = white ? board.blackKing    : board.whiteKing;
+
+//     // === 1) Identify moving piece ===
+//     enum { PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING } movedPiece;
+//     if (GET_BIT(myPawns, move.from)) movedPiece = PAWN;
+//     else if (GET_BIT(myKnights, move.from)) movedPiece = KNIGHT;
+//     else if (GET_BIT(myBishops, move.from)) movedPiece = BISHOP;
+//     else if (GET_BIT(myRooks, move.from)) movedPiece = ROOK;
+//     else if (GET_BIT(myQueens, move.from)) movedPiece = QUEEN;
+//     else movedPiece = KING;
+
+//     int movedIndex = (white ? 0 : 6) + movedPiece;
+
+//     // 🔹 Zobrist: remove moving piece from source
+//     board.zobristKey ^= zobristTable[movedIndex][move.from];
+
+//     // === 2) Remove piece from source ===
+//     switch (movedPiece) {
+//         case PAWN:   myPawns   &= ~(1ULL << move.from); break;
+//         case KNIGHT: myKnights &= ~(1ULL << move.from); break;
+//         case BISHOP: myBishops &= ~(1ULL << move.from); break;
+//         case ROOK:   myRooks   &= ~(1ULL << move.from); break;
+//         case QUEEN:  myQueens  &= ~(1ULL << move.from); break;
+//         case KING:   myKing    &= ~(1ULL << move.from); break;
+//     }
+
+//     // === 3) Handle capture (non-en-passant) ===
+//     if (move.isCapture && !move.isEnPassant) {
+//         board.halfmoveClock = 0;
+
+//         int capturedIndex = -1;
+//         if (GET_BIT(oppPawns, move.to)) { oppPawns &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + PAWN; }
+//         else if (GET_BIT(oppKnights, move.to)) { oppKnights &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + KNIGHT; }
+//         else if (GET_BIT(oppBishops, move.to)) { oppBishops &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + BISHOP; }
+//         else if (GET_BIT(oppRooks, move.to)) { oppRooks &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + ROOK; }
+//         else if (GET_BIT(oppQueens, move.to)) { oppQueens &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + QUEEN; }
+//         else if (GET_BIT(oppKing, move.to)) { oppKing &= ~(1ULL << move.to); capturedIndex = (white ? 6 : 0) + KING; }
+
+//         if (capturedIndex != -1)
+//             board.zobristKey ^= zobristTable[capturedIndex][move.to];
+//     }
+
+//     // === 4) En Passant ===
+//     if (move.isEnPassant) {
+//         board.halfmoveClock = 0;
+//         int capSq = white ? move.to - 8 : move.to + 8;
+//         oppPawns &= ~(1ULL << capSq);
+
+//         int capIndex = (white ? 6 : 0) + PAWN;
+//         board.zobristKey ^= zobristTable[capIndex][capSq];
+//     }
+
+//     // === 5) Place moved piece (promotion) ===
+//     if (movedPiece == PAWN && move.promotion) {
+//         // Remove pawn at destination (if promotion)
+//         board.zobristKey ^= zobristTable[movedIndex][move.to];
+
+//         int promoIndex = (white ? 0 : 6);
+//         switch (move.promotion) {
+//             case 'Q': myQueens  |= 1ULL << move.to; promoIndex += QUEEN; break;
+//             case 'R': myRooks   |= 1ULL << move.to; promoIndex += ROOK; break;
+//             case 'B': myBishops |= 1ULL << move.to; promoIndex += BISHOP; break;
+//             case 'N': myKnights |= 1ULL << move.to; promoIndex += KNIGHT; break;
+//         }
+//         board.zobristKey ^= zobristTable[promoIndex][move.to];
+//     } else {
+//         switch (movedPiece) {
+//             case PAWN:   myPawns   |= 1ULL << move.to; break;
+//             case KNIGHT: myKnights |= 1ULL << move.to; break;
+//             case BISHOP: myBishops |= 1ULL << move.to; break;
+//             case ROOK:   myRooks   |= 1ULL << move.to; break;
+//             case QUEEN:  myQueens  |= 1ULL << move.to; break;
+//             case KING:   myKing    |= 1ULL << move.to; break;
+//         }
+//         board.zobristKey ^= zobristTable[movedIndex][move.to];
+//     }
+
+//     // === 6) Castling rook move ===
+//     if (movedPiece == KING && (move.isCastling || abs(move.to - move.from) == 2)) {
+//         int rookIndex = (white ? 0 : 6) + ROOK;
+//         if (white && move.to == 6) { myRooks &= ~(1ULL << 7); myRooks |= 1ULL << 5; board.zobristKey ^= zobristTable[rookIndex][7] ^ zobristTable[rookIndex][5]; }
+//         else if (white && move.to == 2) { myRooks &= ~(1ULL << 0); myRooks |= 1ULL << 3; board.zobristKey ^= zobristTable[rookIndex][0] ^ zobristTable[rookIndex][3]; }
+//         else if (!white && move.to == 62) { myRooks &= ~(1ULL << 63); myRooks |= 1ULL << 61; board.zobristKey ^= zobristTable[rookIndex][63] ^ zobristTable[rookIndex][61]; }
+//         else if (!white && move.to == 58) { myRooks &= ~(1ULL << 56); myRooks |= 1ULL << 59; board.zobristKey ^= zobristTable[rookIndex][56] ^ zobristTable[rookIndex][59]; }
+//     }
+
+//     // === 7) Zobrist: castling/en passant before updating game state ===
+//     int oldCastleMask = castlingMask(board.castlingRights);
+//     if (board.enPassantSquare != -1) board.zobristKey ^= zobristEnPassant[board.enPassantSquare % 8];
+
+//     updateGameState(board, move);
+
+//     int newCastleMask = castlingMask(board.castlingRights);
+//     if (oldCastleMask != newCastleMask) {
+//         board.zobristKey ^= zobristCastling[oldCastleMask] ^ zobristCastling[newCastleMask];
+//     }
+//     if (board.enPassantSquare != -1) board.zobristKey ^= zobristEnPassant[board.enPassantSquare % 8];
+
+//     // === 8) Switch side ===
+//     board.whiteToMove = !board.whiteToMove;
+//     board.zobristKey ^= zobristWhiteToMove;
+// }
