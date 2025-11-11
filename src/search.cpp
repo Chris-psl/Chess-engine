@@ -5,6 +5,8 @@
 #include "evaluate.h"
 #include "utils.h"
 #include "updateBoard.h"
+#include "zobrist.h"
+#include "transposition.h"
 
 #include <vector>
 #include <limits>
@@ -51,6 +53,135 @@ int quiescence(BoardState& board, int alpha, int beta) {
     return alpha;
 }
 
+/**
+ * minimax - Implements the Min-Max algorithm with Alpha-Beta pruning and transposition tables to evaluate the best move.
+ * @board: Current state of the chess board.
+ * @depth: Depth of the search tree.
+ * @alpha: Alpha value for alpha-beta pruning.
+ * @beta: Beta value for alpha-beta pruning.
+ * @isMaximizingPlayer: True for the AI player, false for the opponent.
+ * The function is an implementation of the Min-Max algorithm with Alpha-Beta pruning and transposition tables.
+ */
+int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
+    // Compute Zobrist key for this node
+    uint64_t key = computeZobristKey(board);
+
+    // Probe transposition table
+    TTEntry ttEntry;
+    if (TT.probe(key, ttEntry)) {
+        if (ttEntry.depth >= depth) {
+            // Use stored info according to flag
+            if (ttEntry.flag == EXACT) {
+                return ttEntry.score;
+            } else if (ttEntry.flag == LOWERBOUND) {
+                if (ttEntry.score > alpha) alpha = ttEntry.score;
+            } else if (ttEntry.flag == UPPERBOUND) {
+                if (ttEntry.score < beta) beta = ttEntry.score;
+            }
+            if (alpha >= beta) {
+                return ttEntry.score;
+            }
+        }
+    }
+
+    // Terminal or quiescence
+    if (depth == 0) {
+        int q = quiescence(board, alpha, beta);
+        // Store Q result into TT as exact at depth 0
+        TTEntry storeEntry;
+        storeEntry.key = key;
+        storeEntry.depth = 0;
+        storeEntry.score = q;
+        storeEntry.flag = EXACT;
+        // bestMove left untouched for quiescence
+        TT.store(storeEntry);
+        return q;
+    }
+
+    MoveList moves = generateLegalMoves(board);
+
+    // If no legal moves (checkmate or stalemate), evaluate board directly
+    if (moves.moves.empty()) {
+        int ev = evaluateBoard(board);
+        // store terminal evaluation
+        TTEntry storeEntry;
+        storeEntry.key = key;
+        storeEntry.depth = depth;
+        storeEntry.score = ev;
+        storeEntry.flag = EXACT;
+        TT.store(storeEntry);
+        return ev;
+    }
+
+    int originalAlpha = alpha;
+    Move bestMoveLocal{};
+    int bestScore;
+
+    if (isMaximizingPlayer) {
+        bestScore = std::numeric_limits<int>::min();
+        for (const auto& move : moves.moves) {
+            BoardState newBoard = board;
+            applyMove(newBoard, move);
+
+            if (!isLegalMoveState(newBoard)) {
+                continue; // skip illegal resulting states
+            }
+
+            int score = minimax(newBoard, depth - 1, alpha, beta, false);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMoveLocal = move;
+            }
+            alpha = std::max(alpha, score);
+            if (alpha >= beta) {
+                break; // beta cutoff
+            }
+        }
+    } else {
+        bestScore = std::numeric_limits<int>::max();
+        for (const auto& move : moves.moves) {
+            BoardState newBoard = board;
+            applyMove(newBoard, move);
+
+            if (!isLegalMoveState(newBoard)) {
+                continue;
+            }
+
+            int score = minimax(newBoard, depth - 1, alpha, beta, true);
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestMoveLocal = move;
+            }
+            beta = std::min(beta, score);
+            if (alpha >= beta) {
+                break; // alpha cutoff
+            }
+        }
+    }
+
+    // Determine bound type to store
+    BoundType flag = EXACT;
+    if (bestScore <= originalAlpha) {
+        flag = UPPERBOUND;
+    } else if (bestScore >= beta) {
+        flag = LOWERBOUND;
+    } else {
+        flag = EXACT;
+    }
+
+    // Store result in TT
+    TTEntry storeEntry;
+    storeEntry.key = key;
+    storeEntry.depth = depth;
+    storeEntry.score = bestScore;
+    storeEntry.flag = flag;
+    storeEntry.bestMove = bestMoveLocal;
+    TT.store(storeEntry);
+
+    return bestScore;
+}
 
 /**
  * minimax - Implements the Min-Max algorithm to evaluate the best move.
@@ -60,52 +191,52 @@ int quiescence(BoardState& board, int alpha, int beta) {
  * The function is an implementation of the Min-Max algorithm with Alpha-Beta pruning.
  * Function call: int bestEval = minimax(board, depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), true);
  */
-int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
-    // If reached maximum depth or terminal state, evaluate board
-    if (depth == 0) {
-        //return evaluateBoard(board);
-        return quiescence(board, alpha, beta);
-    }
+// int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer) {
+//     // If reached maximum depth or terminal state, evaluate board
+//     if (depth == 0) {
+//         //return evaluateBoard(board);
+//         return quiescence(board, alpha, beta);
+//     }
 
-    MoveList moves = generateLegalMoves(board);
+//     MoveList moves = generateLegalMoves(board);
 
-    // If no legal moves (checkmate or stalemate), evaluate board directly
-    if (moves.moves.empty()) {
-        return evaluateBoard(board);
-    }
+//     // If no legal moves (checkmate or stalemate), evaluate board directly
+//     if (moves.moves.empty()) {
+//         return evaluateBoard(board);
+//     }
 
-    if (isMaximizingPlayer) {
-        int maxEval = std::numeric_limits<int>::min();
-        for (const auto& move : moves.moves) {
-            BoardState newBoard = board;
-            applyMove(newBoard, move);
+//     if (isMaximizingPlayer) {
+//         int maxEval = std::numeric_limits<int>::min();
+//         for (const auto& move : moves.moves) {
+//             BoardState newBoard = board;
+//             applyMove(newBoard, move);
 
-            int eval = minimax(newBoard, depth - 1, alpha, beta, false);
-            maxEval = std::max(maxEval, eval);
-            alpha = std::max(alpha, eval);
+//             int eval = minimax(newBoard, depth - 1, alpha, beta, false);
+//             maxEval = std::max(maxEval, eval);
+//             alpha = std::max(alpha, eval);
 
-            // --- Alpha-Beta Pruning ---
-            if (beta <= alpha)
-                break;
-        }
-        return maxEval;
-    } else {
-        int minEval = std::numeric_limits<int>::max();
-        for (const auto& move : moves.moves) {
-            BoardState newBoard = board;
-            applyMove(newBoard, move);
+//             // --- Alpha-Beta Pruning ---
+//             if (beta <= alpha)
+//                 break;
+//         }
+//         return maxEval;
+//     } else {
+//         int minEval = std::numeric_limits<int>::max();
+//         for (const auto& move : moves.moves) {
+//             BoardState newBoard = board;
+//             applyMove(newBoard, move);
 
-            int eval = minimax(newBoard, depth - 1, alpha, beta, true);
-            minEval = std::min(minEval, eval);
-            beta = std::min(beta, eval);
+//             int eval = minimax(newBoard, depth - 1, alpha, beta, true);
+//             minEval = std::min(minEval, eval);
+//             beta = std::min(beta, eval);
 
-            // --- Alpha-Beta Pruning ---
-            if (beta <= alpha)
-                break;
-        }
-        return minEval;
-    }
-}
+//             // --- Alpha-Beta Pruning ---
+//             if (beta <= alpha)
+//                 break;
+//         }
+//         return minEval;
+//     }
+// }
 
 
 

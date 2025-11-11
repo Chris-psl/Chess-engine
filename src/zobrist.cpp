@@ -3,23 +3,26 @@
 #include <string>
 
 // global zobrist arrays
-uint64_t zobristTable[12][64];
-uint64_t zobristWhiteToMove;
-uint64_t zobristCastling[16];
-uint64_t zobristEnPassant[8];
+uint64_t zobristTable[12][64];  // 12 piece types × 64 squares
+uint64_t zobristWhiteToMove;    // Side to move
+uint64_t zobristCastling[16];   // 16 possible combinations of KQkq
+uint64_t zobristEnPassant[8];   // En passant files
 
+// Generate a random 64-bit number
 static uint64_t random64() {
     static std::mt19937_64 rng(2025);  // fixed seed for determinism
     static std::uniform_int_distribution<uint64_t> dist;
     return dist(rng);
 }
 
+// Initialize Zobrist hashing tables with random values
 void initZobrist() {
     // Fill piece-square table
     for (int p = 0; p < 12; ++p)
         for (int sq = 0; sq < 64; ++sq)
             zobristTable[p][sq] = random64();
 
+    // Side to move
     zobristWhiteToMove = random64();
 
     // 16 combinations of KQkq castling rights
@@ -41,6 +44,7 @@ int castlingMask(const std::string& rights) {
     return mask;
 }
 
+// Compute the Zobrist hash key for a given board state
 uint64_t computeZobristKey(const BoardState& board) {
     uint64_t key = 0;
 

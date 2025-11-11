@@ -119,16 +119,12 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
     }else if (command == "2"){
         //////////////////////// Main implementation ////////////////////////
 
-        // Parse the FEN string to set up the board
-        //if (!fenInput.empty())board = parseFEN(fenInput);
-
+        // Initiate zobrist hashing
+        initZobrist();
+        
         // Initialize attack tables and generate moves
         initAttackTables();
         MoveList moves = generateMoves(board);
-
-        // Initialize Zobrist hashing
-        initZobrist();
-        board.zobristKey = computeZobristKey(board);
 
         //////////////////////// Min-max with thread Pool Implementation ////////////////////////
         size_t numThreads = 11;
