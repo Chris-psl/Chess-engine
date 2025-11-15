@@ -40,6 +40,8 @@ int quiescence(BoardState& board, int alpha, int beta) {
 
     for (const auto& move : captureMoves.moves) {
         BoardState newBoard = board;
+
+        updateEnPassantSquare(newBoard, move);
         applyMove(newBoard, move);
 
         int score = -quiescence(newBoard, -beta, -alpha); // negamax-style symmetry
@@ -52,6 +54,37 @@ int quiescence(BoardState& board, int alpha, int beta) {
 
     return alpha;
 }
+
+// int quiescence(BoardState& board, int alpha, int beta, bool isMaximizingPlayer) {
+//     int stand_pat = evaluateBoard(board);
+
+//     if (!isMaximizingPlayer) stand_pat = -stand_pat; // flip evaluation for minimizing
+
+//     if (stand_pat >= beta) return beta;
+//     if (alpha < stand_pat) alpha = stand_pat;
+
+//     board.genVolatile = true;
+//     MoveList captureMoves = generateLegalMoves(board);
+//     board.genVolatile = false;
+
+//     for (const auto& move : captureMoves.moves) {
+//         BoardState newBoard = board;
+//         applyMove(newBoard, move);
+
+//         int score = quiescence(newBoard, alpha, beta, !isMaximizingPlayer);
+
+//         if (isMaximizingPlayer) {
+//             if (score >= beta) return beta;
+//             if (score > alpha) alpha = score;
+//         } else {
+//             if (score <= alpha) return alpha;
+//             if (score < beta) beta = score;
+//         }
+//     }
+
+//     return isMaximizingPlayer ? alpha : beta;
+// }
+
 
 /**
  * minimax - Implements the Min-Max algorithm with Alpha-Beta pruning and transposition tables to evaluate the best move.
@@ -87,6 +120,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
     // Terminal or quiescence
     if (depth == 0) {
         int q = quiescence(board, alpha, beta);
+       // int q = quiescence(board, alpha, beta, isMaximizingPlayer);
         // Store Q result into TT as exact at depth 0
         TTEntry storeEntry;
         storeEntry.key = key;
@@ -121,6 +155,8 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
         bestScore = std::numeric_limits<int>::min();
         for (const auto& move : moves.moves) {
             BoardState newBoard = board;
+
+            updateEnPassantSquare(newBoard, move);
             applyMove(newBoard, move);
 
             if (!isLegalMoveState(newBoard)) {
@@ -142,6 +178,8 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
         bestScore = std::numeric_limits<int>::max();
         for (const auto& move : moves.moves) {
             BoardState newBoard = board;
+
+            updateEnPassantSquare(newBoard, move);
             applyMove(newBoard, move);
 
             if (!isLegalMoveState(newBoard)) {
@@ -264,6 +302,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
             BoardState newBoard = board;
 
             // Apply move to newBoard
+            updateEnPassantSquare(newBoard, move);
             applyMove(newBoard, move);
 
             // Recursively call minimax
@@ -278,6 +317,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
             BoardState newBoard = board; 
 
             // Apply move to newBoard
+            updateEnPassantSquare(newBoard, move);
             applyMove(newBoard, move);
 
             // Recursively call minimax

@@ -8,6 +8,7 @@
 // Attack on king by pawn test: 8/8/4k3/3P4/8/8/4K3/8 w - - 0 1
 // King defense test: 4k3/8/8/8/7q/8/6P1/4K3 w - - 0 1
 
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <unordered_map>
@@ -15,12 +16,12 @@
 #include <vector>
 #include <cctype>
 #include <optional>
+#include <algorithm>
 
-// Project headers
 #include "parsing.h"     // BoardState parseFEN(const std::string&);
 #include "engine.h"      // std::string engine(const std::string& cmd, const std::string& fen, const BoardState& state);
 #include "updateBoard.h" // void applyMove(BoardState& board, const Move& move);
-#include "utils.h"       // may contain helpers / types the engine uses
+#include "utils.h"       // helpers/types the engine uses (Move, MoveList, BoardState, etc.)
 
 const int SQUARE_SIZE = 80;
 const int BOARD_SIZE = 8;
@@ -55,17 +56,16 @@ void drawBoard(sf::RenderWindow& window) {
     }
 }
 
+// FEN -> pieces (row 0 = rank8)
 void loadPositionFromFEN(const std::string& fen, std::vector<Piece>& pieces, const std::unordered_map<char, sf::Texture>& textures) {
     pieces.clear();
     int row = 0;
     int col = 0;
     for (char ch : fen) {
         if (ch == ' ') break;
-        if (ch == '/') {
-            ++row;
-            col = 0;
-        } else if (std::isdigit(static_cast<unsigned char>(ch))) {
-            col += ch - '0';
+        if (ch == '/') { ++row; col = 0; }
+        else if (std::isdigit(static_cast<unsigned char>(ch))) {
+            col += (ch - '0');
         } else {
             auto it = textures.find(ch);
             if (it != textures.end()) {
@@ -76,6 +76,8 @@ void loadPositionFromFEN(const std::string& fen, std::vector<Piece>& pieces, con
                 p.sprite.setTexture(it->second);
                 p.sprite.setPosition(static_cast<float>(col * SQUARE_SIZE), static_cast<float>(row * SQUARE_SIZE));
                 pieces.push_back(p);
+            } else {
+                std::cerr << "Warning: no texture for '" << ch << "' found in textures map.\n";
             }
             ++col;
         }
@@ -107,13 +109,13 @@ std::string getMoveString(int fromRow, int fromCol, int toRow, int toCol, char p
     char toRank = '8' - toRow;
     std::string s;
     s += fromFile; s += fromRank; s += toFile; s += toRank;
-    if (promotion != '\0') s += std::tolower(static_cast<unsigned char>(promotion));
+    if (promotion != '\0') s += static_cast<char>(std::tolower(static_cast<unsigned char>(promotion)));
     return s;
 }
 
 std::optional<Move> uciToMove(const std::string& uci) {
     if (uci.size() < 4) return std::nullopt;
-    char fFile = uci[0], fRank = uci[1], tFile = uci[2], tRank = uci[3], promotion = uci[4];
+    char fFile = uci[0], fRank = uci[1], tFile = uci[2], tRank = uci[3];
     if (fFile < 'a' || fFile > 'h' || tFile < 'a' || tFile > 'h') return std::nullopt;
     if (fRank < '1' || fRank > '8' || tRank < '1' || tRank > '8') return std::nullopt;
 
@@ -125,12 +127,10 @@ std::optional<Move> uciToMove(const std::string& uci) {
     int fromSq = fromRank * 8 + fromFile;
     int toSq   = toRank * 8 + toFile;
 
-
-
     Move m{};
     m.from = fromSq;
     m.to = toSq;
-    m.promotion = promotion;
+    m.promotion = '\0';
     m.isCapture = false;
     m.isEnPassant = false;
     m.isCastling = false;
@@ -157,9 +157,61 @@ int rowColToSquareIndex(int row, int col) {
 }
 
 // --------------------------------------------------
-// Convert BoardState -> FEN string for engine
+// Castling handler: move the rook in the GUI when the king moves two files
 // --------------------------------------------------
-std::string bitboardsToFEN(const BoardState& board); // implement in parsing.cpp or utils.cpp
+void handleCastlingForKing(std::vector<Piece>& pieces, int kingIndex,
+                           int fromRow, int fromCol, int toRow, int toCol) {
+    if (kingIndex < 0 || kingIndex >= static_cast<int>(pieces.size())) return;
+    char k = pieces[kingIndex].type;
+    if (std::toupper(static_cast<unsigned char>(k)) != 'K') return;
+
+    int fileDiff = std::abs(fromCol - toCol);
+    if (fileDiff != 2) return; // not a castling king move
+
+    // Determine expected rook source and destination
+    // Kingside: king to g-file (col 6) -> rook from h-file (col 7) to f-file (col 5)
+    // Queenside: king to c-file (col 2) -> rook from a-file (col 0) to d-file (col 3)
+    int rookFromCol = (toCol == 6) ? 7 : 0;
+    int rookToCol   = (toCol == 6) ? 5 : 3;
+    int rookRow = fromRow; // same row as king
+
+    int rookIdx = findPieceAt(pieces, rookRow, rookFromCol);
+    if (rookIdx == -1) {
+        // fallback: find a rook of same color on the same row (closest to expected side)
+        char expectedRookChar = std::isupper(static_cast<unsigned char>(k)) ? 'R' : 'r';
+        int bestIdx = -1;
+        int bestDist = 100;
+        for (size_t i = 0; i < pieces.size(); ++i) {
+            if (static_cast<int>(i) == kingIndex) continue;
+            if (pieces[i].row != rookRow) continue;
+            if (pieces[i].type != expectedRookChar) continue;
+            int dist = std::abs(pieces[i].col - rookFromCol);
+            if (dist < bestDist) { bestDist = dist; bestIdx = static_cast<int>(i); }
+        }
+        rookIdx = bestIdx;
+        if (rookIdx == -1) {
+            std::cerr << "Castling: rook not found for king at (" << fromRow << "," << fromCol << ")->(" << toRow << "," << toCol << ")\n";
+            return;
+        }
+    }
+
+    // If rook index equals king index something is deeply wrong; guard against it.
+    if (rookIdx == kingIndex) {
+        std::cerr << "Castling: rook index equals king index (aborting).\n";
+        return;
+    }
+
+    // Move rook in GUI
+    pieces[rookIdx].col = rookToCol;
+    pieces[rookIdx].row = rookRow;
+    pieces[rookIdx].sprite.setPosition(static_cast<float>(rookToCol * SQUARE_SIZE),
+                                       static_cast<float>(rookRow * SQUARE_SIZE));
+
+    std::cerr << "Castling: moved rook (piece idx " << rookIdx << ") from col " << rookFromCol << " to " << rookToCol << " on row " << rookRow << ".\n";
+}
+
+// Forward declaration (implemented elsewhere in your project)
+std::string bitboardsToFEN(const BoardState& board);
 
 // --------------------------------------------------
 // Main
@@ -174,17 +226,15 @@ int main() {
     std::string fenInput;
     std::getline(std::cin, fenInput);
     if (fenInput.empty()) fenInput = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    std::string initialFen = fenInput;
-    BoardState boardState = parseFEN(initialFen);
 
-    // Mode 1: Engine Test
+    BoardState boardState = parseFEN(fenInput);
+
     if (mode == "1") {
-        std::string r = engine("1", initialFen, boardState);
+        std::string r = engine("1", fenInput, boardState);
         std::cout << "Engine returned: " << r << std::endl;
         return 0;
     }
 
-    // Mode 2: GUI
     int playerChoice = 0;
     std::cout << "Play as (0=White, 1=Black). Default 0: ";
     std::string input;
@@ -200,22 +250,20 @@ int main() {
     // Load piece textures
     std::unordered_map<char, sf::Texture> textures;
     for (const auto& kv : pieceToFile) {
-        char sym = kv.first;
-        const std::string& fname = kv.second;
-        textures.emplace(sym, sf::Texture());
-        sf::Texture& tex = textures.at(sym);
-        if (!tex.loadFromFile("assets/" + fname)) {
-            std::cerr << "Failed to load asset: " << fname << "\n";
-            return -1;
+        textures.emplace(kv.first, sf::Texture());
+        sf::Texture& tex = textures.at(kv.first);
+        if (!tex.loadFromFile("assets/" + kv.second)) {
+            std::cerr << "Failed to load asset: " << kv.second << "\n";
+            // continue; we allow the program to run but sprite will be blank
         }
     }
 
     // Load initial position
     std::vector<Piece> pieces;
-    loadPositionFromFEN(initialFen, pieces, textures);
+    loadPositionFromFEN(fenInput, pieces, textures);
 
-    // Main loop
-    BoardState board = parseFEN(initialFen);
+    // Main loop state
+    BoardState board = parseFEN(fenInput);
     Piece* selectedPiece = nullptr;
     int selectedIndex = -1;
 
@@ -223,6 +271,7 @@ int main() {
         sf::Event event;
         bool humanMovedThisFrame = false;
         std::string lastUciMove;
+        
 
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
@@ -233,32 +282,22 @@ int main() {
             // --------------------------------------------------
             // Human turn
             // --------------------------------------------------
-            
             bool humanTurn = (playerChoice == 0 && board.whiteToMove) || (playerChoice == 1 && !board.whiteToMove);
 
             if (humanTurn) {
-                if (mode == "3")break; // skip human input in self-play mode
+                if (mode == "3") break; // skip human input in self-play mode
                 BoardState tempBoard = board;
+
+                // Generate moves for the player to prevent illegal moves
+                initAttackTables();
                 MoveList legalMoves = generateLegalMoves(tempBoard);
 
                 // Check if player has lost
                 if(legalMoves.moves.empty()) {
-                    std::cout << "Game over! You have no legal moves.\n";
+                    std::cout << "Game over! You have no moves.\n";
                     window.close();
                     break;
                 }
-
-                // if legal moves are less than 10 print them for debug
-                if(legalMoves.moves.size() <= 10) {
-                    std::cout << "Legal moves:\n";
-                    for (const auto& lm : legalMoves.moves) {
-                        // std::string lmUci = getMoveString(lm.from / 8, lm.from % 8, lm.to / 8, lm.to % 8, lm.promotion);
-                        // std::cout << lmUci << " ";
-                        std::cout << squareToString(lm.from) << squareToString(lm.to) << "\n";
-                    }
-                    std::cout << "\n";
-                }
-            
 
                 // Handle piece selection and movement
                 if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
@@ -279,9 +318,9 @@ int main() {
                         if (fromRow == toRow && fromCol == toCol) { selectedPiece = nullptr; selectedIndex = -1; continue; }
 
                         char promotion = '\0';
-                        if (selectedPiece->type == 'P' && toRow == 7) promotion = 'Q';
-                        else if (selectedPiece->type == 'p' && toRow == 0) promotion = 'q';
-
+                        // White pawns promote on row 0 (rank 8). Black pawns on row 7 (rank 1).
+                        if (selectedPiece->type == 'P' && toRow == 0) promotion = 'Q';
+                        else if (selectedPiece->type == 'p' && toRow == 7) promotion = 'q';
 
                         std::string uci = getMoveString(fromRow, fromCol, toRow, toCol, promotion);
 
@@ -310,6 +349,7 @@ int main() {
                         }
 
                         // Apply move to board state
+                        updateEnPassantSquare(board, mv);
                         applyMove(board, mv);
 
                         // Change the icon if there is promotion
@@ -317,9 +357,9 @@ int main() {
                             bool whitePromoting = std::isupper(selectedPiece->type);
                             char promoChar = whitePromoting ? mv.promotion
                                                             : static_cast<char>(std::tolower(mv.promotion));
-
                             selectedPiece->type = promoChar;
-                            selectedPiece->sprite.setTexture(textures.at(promoChar));
+                            auto it = textures.find(promoChar);
+                            if (it != textures.end()) selectedPiece->sprite.setTexture(it->second);
                         }
 
                         // Handle captures
@@ -328,9 +368,13 @@ int main() {
                             else pieces.erase(pieces.begin() + captureIdx);
                         }
 
+                        // Move king/piece sprite
                         pieces[selectedIndex].row = toRow;
                         pieces[selectedIndex].col = toCol;
                         pieces[selectedIndex].sprite.setPosition(static_cast<float>(toCol * SQUARE_SIZE), static_cast<float>(toRow * SQUARE_SIZE));
+
+                        // Handle castling
+                        handleCastlingForKing(pieces, selectedIndex, fromRow, fromCol, toRow, toCol);
 
                         lastUciMove = uci;
                         humanMovedThisFrame = true;
@@ -361,6 +405,9 @@ int main() {
                     sf::Vector2i dst = squareIndexToRowCol(mv.to);
                     int captureIdx = findPieceAt(pieces, dst.x, dst.y);
                     if (captureIdx != -1) mv.isCapture = true;
+
+                    // Apply move to board state
+                    updateEnPassantSquare(board, mv);
                     applyMove(board, mv);
 
                     sf::Vector2i fromRC = squareIndexToRowCol(mv.from);
@@ -381,8 +428,12 @@ int main() {
                             bool whitePromoting = std::isupper(pieces[idx].type);
                             char promoChar = whitePromoting ? mv.promotion : static_cast<char>(std::tolower(mv.promotion));
                             pieces[idx].type = promoChar;
-                            pieces[idx].sprite.setTexture(textures.at(promoChar));
+                            auto it = textures.find(promoChar);
+                            if (it != textures.end()) pieces[idx].sprite.setTexture(it->second);
                         }
+
+                        // Handle castling if king moved two squares
+                        handleCastlingForKing(pieces, idx, fromRC.x, fromRC.y, toRC.x, toRC.y);
                     }
                 }
             } else std::cerr << "Engine returned no valid move: " << engineMoveUCI << "\n";

@@ -62,49 +62,36 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
         // Initialize attack tables and generate moves
         //initAttackTables(); we initialized them above
         MoveList moves = generateLegalMoves(board);
+        MoveList moves2 = moves;
         Move testMove = moves.moves[1]; // Take the first move for testing
-
-
-        // print the captures
-        for (const auto& m : moves.moves) {
-            if (m.isCapture) {
-                std::cout << "Capture move: " << squareToString(m.from) << squareToString(m.to);
-                if(m.promotion != '\0')
-                    std::cout << m.promotion;
-                std::cout << "\n";
-            }
-        }
-
-        // print the en passant moves
-        for (const auto& m : moves.moves) {
-            if (m.isEnPassant) {
-                std::cout << "En Passant move: " << squareToString(m.from) << squareToString(m.to) << "\n";
-            }
-        }
-
-        // print the promotion moves
-        for (const auto& m : moves.moves) {
-            if (m.promotion != '\0') {
-                std::cout << "Promotion move: " << squareToString(m.from) << squareToString(m.to) << " to " << m.promotion << "\n";
-            }
-        }   
-
-        // print the castling moves
-        for (const auto& m : moves.moves) {
-            if (m.isCastling) {
-                std::cout << "Castling move: " << squareToString(m.from) << squareToString(m.to) << "\n";
-            }
-        }
 
         // Print all generated moves
         std::cout << "Generated " << moves.moves.size() << ".\n";
-        while(moves.moves.size() > 0){
+        while((moves.moves.size() > 0)){
             Move m = moves.moves.back();
             moves.moves.pop_back();
             std::cout << squareToString(m.from) << squareToString(m.to);
             if(m.promotion != '\0')
                 std::cout << m.promotion;
+            if(m.isCapture)
+                std::cout << "x";
+            if(m.isCastling)
+                std::cout << "c";
+            if(m.isEnPassant)
+                std::cout << "ep";
             std::cout << "\n";
+        }
+        // Apply a castling move
+        while(moves2.moves.size() > 0){
+            BoardState temp = board;
+            Move m = moves2.moves.back();
+            moves2.moves.pop_back();
+            if(m.isCastling){
+                std::cout << "entered if";
+                applyMove(temp, m);
+                printBoard(temp);
+            }
+            
         }
 
         // Test the updateBoard function, copy the board state update the move and print the new board
@@ -121,10 +108,10 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
 
         // Initiate zobrist hashing
         initZobrist();
-        
+
         // Initialize attack tables and generate moves
         initAttackTables();
-        MoveList moves = generateMoves(board);
+        MoveList moves = generateLegalMoves(board);
 
         //////////////////////// Min-max with thread Pool Implementation ////////////////////////
         size_t numThreads = 11;
@@ -143,7 +130,7 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
                 }
 
                 // int eval = minimax(newBoard, 3, false);
-                int eval = minimax(newBoard, 5, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), false);
+                int eval = minimax(newBoard, 3, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), false);
                 return {m, eval};
             }));
         }

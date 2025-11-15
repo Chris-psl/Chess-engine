@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "zobrist.h"
 #include "updateBoard.h"
+#include <iostream>
 #include <cassert>
 
 
@@ -16,24 +17,18 @@
  */
 void updateEnPassantSquare(BoardState& board, const Move& move) {
     // Reset en passant square by default
-    //board.enPassantSquare = -1;
-   
+    board.enPassantSquare = -1;
+
     // Check if the move is a two-square pawn advance
     if (board.whiteToMove) {
         // White to move
         if (GET_BIT(board.whitePawns, move.from) && (move.to - move.from) == 16) {
             board.enPassantSquare = move.from + 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
         }
     } else {
         // Black to move
         if (GET_BIT(board.blackPawns, move.from) && (move.from - move.to) == 16) {
             board.enPassantSquare = move.from - 8; // Square behind the pawn
-            //addMove(move.from, move.to, '\0', false, true, false);
-        }else {
-            board.enPassantSquare = -1;
         }
     }
 }
@@ -89,7 +84,7 @@ void updateCastlingRights(BoardState& board, const Move& move) {
 // Function that updates the castling rights and en passant square after a move
 void updateGameState(BoardState& board, const Move& move) {
     updateCastlingRights(board, move);
-    updateEnPassantSquare(board, move);
+    //updateEnPassantSquare(board, move);
 }
 
 // Function that applies a move to the board state
@@ -251,7 +246,7 @@ static inline int pieceIndex(bool white, int pieceEnum) {
 
 void applyMove(BoardState& board, const Move& move) {
     bool white = board.whiteToMove;
-
+    
     // Save previous state for zobrist updates
     int oldCastlingMask = castlingMask(board.castlingRights);
     int oldEnPassant = board.enPassantSquare; // -1 if none
