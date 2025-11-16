@@ -45,7 +45,7 @@ BoardState parseFEN(const std::string& fen) {
     std::istringstream iss(fen); // Treats FEN as a stream
     std::string token;
 
-    // 1️⃣ Piece placement
+    // Piece placement
     std::getline(iss, token, ' ');
     int rank = 7; // FEN starts from rank 8
     int file = 0;
@@ -61,15 +61,15 @@ BoardState parseFEN(const std::string& fen) {
         }
     }
 
-    // 2️⃣ Active color
+    // Active color
     std::getline(iss, token, ' ');
     state.whiteToMove = (token == "w"); // 'w' for white to move, 'b' for black
 
-    // 3️⃣ Castling rights
+    // Castling rights
     std::getline(iss, token, ' ');
     state.castlingRights = token;       // e.g., "KQkq"
 
-    // 4️⃣ En passant target square
+    // En passant target square
     std::getline(iss, token, ' ');
     if (token != "-") {
         char fileChar = token[0]; // a-h
@@ -82,11 +82,11 @@ BoardState parseFEN(const std::string& fen) {
         state.enPassantSquare = epRank * 8 + epFile;
     }
 
-    // 5️⃣ Halfmove clock
+    // Halfmove clock
     std::getline(iss, token, ' ');
     state.halfmoveClock = std::stoi(token);
 
-    // 6️⃣ Fullmove number
+    // Fullmove number
     std::getline(iss, token, ' ');
     state.fullmoveNumber = std::stoi(token);
 
@@ -97,7 +97,7 @@ BoardState parseFEN(const std::string& fen) {
 std::string bitboardsToFEN(const BoardState& board) {
     std::string fen;
 
-    // 1️⃣ Piece placement
+    // Piece placement
     for (int rank = 7; rank >= 0; rank--) {
         int emptySquares = 0;
         for (int file = 0; file < 8; file++) {
@@ -120,13 +120,13 @@ std::string bitboardsToFEN(const BoardState& board) {
         if (rank > 0) fen += '/';
     }
 
-    // 2️⃣ Active color
+    // Active color
     fen += board.whiteToMove ? " w " : " b ";
 
-    // 3️⃣ Castling rights
+    // Castling rights
     fen += board.castlingRights + " ";
 
-    // 4️⃣ En passant target square
+    // En passant target square
     if (board.enPassantSquare != -1) {
         int file = board.enPassantSquare % 8;
         int rank = board.enPassantSquare / 8;
@@ -135,10 +135,10 @@ std::string bitboardsToFEN(const BoardState& board) {
         fen += "- ";
     }
 
-    // 5️⃣ Halfmove clock
+    // Halfmove clock
     fen += std::to_string(board.halfmoveClock) + " ";
 
-    // 6️⃣ Fullmove number
+    // Fullmove number
     fen += std::to_string(board.fullmoveNumber);
 
     return fen;

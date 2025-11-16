@@ -10,6 +10,10 @@
 // ban illegal board state test: 8/8/8/8/8/8/3k4/4K3 w - - 0 1
 
 #include <iostream>
+#include <limits>
+#include <string>
+#include <vector>
+#include <future>
 
 #include "engine.h"
 #include "movegen.h"
@@ -18,34 +22,35 @@
 #include "updateBoard.h"
 #include "tools.h"
 #include "search.h"
+#include "threadPool.h"
+#include "zobrist.h"
+#include "transposition.h"
 
+TranspositionTable TT(64); // 64 MB global TT
 
 // ============================================================================
 //  SECTION 1: Main loop
 // ============================================================================
 
-int main() {
+/**
+ * @brief Main engine loop to process commands and perform actions.
+ * receives a fen input and generates moves or runs the engine to find the best move based on the command given.
+ * returns the best move found.
+ */
+std::string engine(std::string command, std::string fenInput, BoardState& board) {
 
-    BoardState board = {}; // Initialize an empty board state
-    std::string command;
-    std::cout << "Enter command: ";
-
-    std::getline(std::cin, command);
+    //BoardState board = {}; // Initialize an empty board state
     
     if(command == "1"){
         //////////////////////// Functionality test ////////////////////////
 
-        // Example usage: parse FEN from user input and generate moves
-        std::cout << "Enter FEN string: ";
-        std::string fenInput;
-        std::getline(std::cin, fenInput);
-        board = parseFEN(fenInput);
-
+        // Must always initialize the attack tables after each update, mandatory for functions like is legalmovestate
         initAttackTables();
+
         // Check if the state is legal
         if(!isLegalMoveState(board)){
             std::cout << "Illegal board state detected!\n";
-            return 1;
+            return "error";
         }else{
             std::cout << "Legal board state.\n";
         }
@@ -55,51 +60,38 @@ int main() {
         printBoard(board);
 
         // Initialize attack tables and generate moves
-        initAttackTables();
-        MoveList moves = generateMoves(board);
+        //initAttackTables(); we initialized them above
+        MoveList moves = generateLegalMoves(board);
+        MoveList moves2 = moves;
         Move testMove = moves.moves[1]; // Take the first move for testing
-
-
-        // print the captures
-        for (const auto& m : moves.moves) {
-            if (m.isCapture) {
-                std::cout << "Capture move: " << squareToString(m.from) << squareToString(m.to);
-                if(m.promotion != '\0')
-                    std::cout << m.promotion;
-                std::cout << "\n";
-            }
-        }
-
-        // print the en passant moves
-        for (const auto& m : moves.moves) {
-            if (m.isEnPassant) {
-                std::cout << "En Passant move: " << squareToString(m.from) << squareToString(m.to) << "\n";
-            }
-        }
-
-        // print the promotion moves
-        for (const auto& m : moves.moves) {
-            if (m.promotion != '\0') {
-                std::cout << "Promotion move: " << squareToString(m.from) << squareToString(m.to) << " to " << m.promotion << "\n";
-            }
-        }   
-
-        // print the castling moves
-        for (const auto& m : moves.moves) {
-            if (m.isCastling) {
-                std::cout << "Castling move: " << squareToString(m.from) << squareToString(m.to) << "\n";
-            }
-        }
 
         // Print all generated moves
         std::cout << "Generated " << moves.moves.size() << ".\n";
-        while(moves.moves.size() > 0){
+        while((moves.moves.size() > 0)){
             Move m = moves.moves.back();
             moves.moves.pop_back();
             std::cout << squareToString(m.from) << squareToString(m.to);
             if(m.promotion != '\0')
                 std::cout << m.promotion;
+            if(m.isCapture)
+                std::cout << "x";
+            if(m.isCastling)
+                std::cout << "c";
+            if(m.isEnPassant)
+                std::cout << "ep";
             std::cout << "\n";
+        }
+        // Apply a castling move
+        while(moves2.moves.size() > 0){
+            BoardState temp = board;
+            Move m = moves2.moves.back();
+            moves2.moves.pop_back();
+            if(m.isCastling){
+                std::cout << "entered if";
+                applyMove(temp, m);
+                printBoard(temp);
+            }
+            
         }
 
         // Test the updateBoard function, copy the board state update the move and print the new board
@@ -109,34 +101,102 @@ int main() {
             std::cout << "Board after move:\n";
             printBoard(board);
         }
+        return "finished tests";
 
     }else if (command == "2"){
-        //////////////////////// Engine test ////////////////////////
+        //////////////////////// Main implementation ////////////////////////
 
-        // Example usage: simple engine loop
-        board = parseFEN("rnbq1rk1/pp2bppp/2p1pn2/3p4/3P1B2/2N1PN2/PP3PPP/R2QKB1R w KQ - 2 8"); // best pos d4, e3, f4 bishop
+        // Initiate zobrist hashing
+        initZobrist();
 
         // Initialize attack tables and generate moves
         initAttackTables();
-        MoveList moves = generateMoves(board);
+        MoveList moves = generateLegalMoves(board);
 
-        while(moves.moves.size() > 0){
-            // Apply each move and evaluate using minimax
-            BoardState newBoard = board;
-            Move m = moves.moves.back();
-            moves.moves.pop_back();
-            applyMove(newBoard, m);
-            if(!isLegalMoveState(newBoard)) {
-                continue; // Skip illegal board states
+        //////////////////////// Min-max with thread Pool Implementation ////////////////////////
+        size_t numThreads = 11;
+        ThreadPool pool(numThreads);
+
+        std::vector<std::future<std::pair<Move, int>>> futures;
+
+        // Enqueue tasks in the pool
+        for (const auto& m : moves.moves) {
+            futures.push_back(pool.enqueue([board, m]() -> std::pair<Move,int> {
+                BoardState newBoard = board;
+
+                updateGameState(newBoard, m);
+                applyMove(newBoard, m);
+
+                if (!isLegalMoveState(newBoard)) {
+                    return {m, std::numeric_limits<int>::min()};
+                }
+
+                // int eval = minimax(newBoard, 3, false);
+                int eval = minimax(newBoard, 3, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), false);
+                return {m, eval};
+            }));
+        }
+
+        // Collect results and find the best move
+        Move bestMove;
+        int bestEval = std::numeric_limits<int>::min();
+        bool foundMove = false;
+
+        for (auto &fut : futures) {
+            auto [move, eval] = fut.get();
+            if (eval > bestEval) {
+                bestEval = eval;
+                bestMove = move;
+                foundMove = true;
             }
+        }
 
-            // calculate minimax evaluation for the new board state
-            int move = minimax(newBoard, 2, false);
+        // Print best move
+        if (foundMove) {
+            std::string bestMoveStr = squareToString(bestMove.from) + squareToString(bestMove.to);
+            if (bestMove.promotion != '\0') // checks if there is promotion and adds it to the string.
+                bestMoveStr.push_back(bestMove.promotion);
 
-            // Print move and its evaluation
-            std::cout << "Move: " << squareToString(m.from) << squareToString(m.to) << " Evaluation: " << move << "\n";
+            // Print the move for debug 
+            std::cout << "\nBest Move: " << bestMoveStr << " Evaluation: " << bestEval << "\n";
+
+            return bestMoveStr;
+        } else {
+            // No moves available
+            std::cout << "No legal moves found.\n\n";
+            return "ff";
         }
     }
-    return 0;
+    return "invalid command";
 }
+
+
+
+// ============================================================================
+//  Function dump
+// ============================================================================
+
+
+        ///////////////////////// Regular Minmax ////////////////////////
+
+        // std::vector<std::future<std::pair<Move, int>>> futures;
+
+        // // Launch each move in a separate thread
+        // for (const auto& m : moves.moves) {
+        //     futures.push_back(std::async(std::launch::async, [board, m]() -> std::pair<Move,int> {
+        //         BoardState newBoard = board;
+        //         applyMove(newBoard, m);
+
+        //         if (!isLegalMoveState(newBoard)) {
+        //             return {m, std::numeric_limits<int>::min()}; // Illegal moves get minimal evaluation
+        //         }
+
+        //         int eval = minimax(newBoard, 3, false); // Depth 3
+        //         return {m, eval};
+        //     }));
+        // }
+
+        // Create a thread pool with as many threads as hardware supports
+        // size_t numThreads = std::thread::hardware_concurrency();
+        // if (numThreads == 0) numThreads = 4; // Fallback default
 
