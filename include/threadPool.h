@@ -7,6 +7,9 @@
 #include <vector>
 #include <atomic>
 
+/**
+ * @brief A simple thread pool implementation for managing a pool of worker threads.
+ */
 class ThreadPool {
 public:
     explicit ThreadPool(size_t numThreads) : stop(false) {

@@ -169,34 +169,3 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
     }
     return "invalid command";
 }
-
-
-
-// ============================================================================
-//  Function dump
-// ============================================================================
-
-
-        ///////////////////////// Regular Minmax ////////////////////////
-
-        // std::vector<std::future<std::pair<Move, int>>> futures;
-
-        // // Launch each move in a separate thread
-        // for (const auto& m : moves.moves) {
-        //     futures.push_back(std::async(std::launch::async, [board, m]() -> std::pair<Move,int> {
-        //         BoardState newBoard = board;
-        //         applyMove(newBoard, m);
-
-        //         if (!isLegalMoveState(newBoard)) {
-        //             return {m, std::numeric_limits<int>::min()}; // Illegal moves get minimal evaluation
-        //         }
-
-        //         int eval = minimax(newBoard, 3, false); // Depth 3
-        //         return {m, eval};
-        //     }));
-        // }
-
-        // Create a thread pool with as many threads as hardware supports
-        // size_t numThreads = std::thread::hardware_concurrency();
-        // if (numThreads == 0) numThreads = 4; // Fallback default
-

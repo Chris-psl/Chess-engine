@@ -7,7 +7,11 @@
 #include "utils.h"
 
 
-// Print a bitboard to the console in 8x8 board format
+/**
+ * Prints the bitboard in an 8x8 grid format for visualization.
+ * '1' indicates a set bit, '.' indicates an unset bit.
+ * @param bb The bitboard to print.
+ */
 inline void printBitboard(uint64_t bb) {
     for (int rank = 7; rank >= 0; --rank) {
         for (int file = 0; file < 8; ++file) {

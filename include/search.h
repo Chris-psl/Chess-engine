@@ -13,11 +13,3 @@
  * @maximizingPlayer: True for the AI player, false for the opponent.
  */
 int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizingPlayer);
-
-/**
- * Regular Min-Max function without alpha-beta pruning.
- * @board: Current state of the chess board.
- * @depth: Depth of the search tree.
- * @isMaximizingPlayer: True for the AI player, false for the opponent.
- */
-int minimax(BoardState& board, int depth, bool isMaximizingPlayer);

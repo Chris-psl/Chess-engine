@@ -1,13 +1,4 @@
 // main.cpp - Chess GUI using SFML, integrated with engine applyMove(BoardState&, const Move&)
-// castling test: r4kr1/8/8/8/8/8/8/R3K2R w KQ - 0 1
-// castling test: p4k1p/8/8/8/8/8/8/R3K2R w KQ - 0 1
-// castling for black: r3k2r/8/8/8/8/8/8/R4KR1 b kq - 0 1
-// en passant test: 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1
-// mat test: 6k1/5ppp/8/8/3PPP11/4K3/3P4/8 w - - 0 1
-// king move gen test: 3k2r1/8/8/8/8/8/8/4K3 b k - 0 1
-// Attack on king by pawn test: 8/8/4k3/3P4/8/8/4K3/8 w - - 0 1
-// King defense test: 4k3/8/8/8/7q/8/6P1/4K3 w - - 0 1
-
 
 #include <SFML/Graphics.hpp>
 #include <string>
@@ -43,6 +34,7 @@ struct Piece {
 // Helpers
 // --------------------------------------------------
 
+// Draw chessboard
 void drawBoard(sf::RenderWindow& window) {
     sf::RectangleShape square(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
     sf::Color light(240, 217, 181), dark(181, 136, 99);
@@ -95,6 +87,7 @@ sf::Vector2i getSquareFromMouse(int x, int y) {
     return { row, col };
 }
 
+// Find piece index at (row, col), -1 if not found
 int findPieceAt(const std::vector<Piece>& pieces, int row, int col) {
     for (size_t i = 0; i < pieces.size(); ++i) {
         if (pieces[i].row == row && pieces[i].col == col) return static_cast<int>(i);
@@ -102,6 +95,7 @@ int findPieceAt(const std::vector<Piece>& pieces, int row, int col) {
     return -1;
 }
 
+// Convert move from (fromRow, fromCol) to (toRow, toCol) with optional promotion to UCI string
 std::string getMoveString(int fromRow, int fromCol, int toRow, int toCol, char promotion = '\0') {
     char fromFile = 'a' + fromCol;
     char fromRank = '8' - fromRow;
@@ -113,6 +107,7 @@ std::string getMoveString(int fromRow, int fromCol, int toRow, int toCol, char p
     return s;
 }
 
+// Convert UCI string to Move struct
 std::optional<Move> uciToMove(const std::string& uci) {
     if (uci.size() < 4) return std::nullopt;
     char fFile = uci[0], fRank = uci[1], tFile = uci[2], tRank = uci[3];
@@ -142,6 +137,7 @@ std::optional<Move> uciToMove(const std::string& uci) {
     return m;
 }
 
+// Convert square index to (row, col)
 sf::Vector2i squareIndexToRowCol(int sq) {
     int rankIndex = sq / 8; // 0..7 rank1 = 0
     int file = sq % 8;
@@ -150,17 +146,17 @@ sf::Vector2i squareIndexToRowCol(int sq) {
     return { row, col };
 }
 
+// Convert (row, col) to square index
 int rowColToSquareIndex(int row, int col) {
     int file = col;
     int rankIndex = 7 - row; // row0 -> rank8
     return rankIndex * 8 + file;
 }
 
-// --------------------------------------------------
-// Castling handler: move the rook in the GUI when the king moves two files
-// --------------------------------------------------
+// Handle castling rook move in GUI pieces
 void handleCastlingForKing(std::vector<Piece>& pieces, int kingIndex,
-                           int fromRow, int fromCol, int toRow, int toCol) {
+    
+    int fromRow, int fromCol, int toRow, int toCol) {
     if (kingIndex < 0 || kingIndex >= static_cast<int>(pieces.size())) return;
     char k = pieces[kingIndex].type;
     if (std::toupper(static_cast<unsigned char>(k)) != 'K') return;
@@ -210,8 +206,6 @@ void handleCastlingForKing(std::vector<Piece>& pieces, int kingIndex,
     std::cerr << "Castling: moved rook (piece idx " << rookIdx << ") from col " << rookFromCol << " to " << rookToCol << " on row " << rookRow << ".\n";
 }
 
-// Forward declaration (implemented elsewhere in your project)
-std::string bitboardsToFEN(const BoardState& board);
 
 // --------------------------------------------------
 // Main

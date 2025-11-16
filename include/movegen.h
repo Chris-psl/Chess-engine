@@ -68,11 +68,6 @@ std::string squareToString(int sq);
 bool isLegalMoveState(const BoardState& board);
 
 /**
- *  Function that checks if a move puts own king in check.
- */
-bool is_in_check(const BoardState& board);
-
-/**
  * Generates all legal moves for the side to move, filtering out moves that leave the king in check.
  */
 MoveList generateLegalMoves(const BoardState& board);
