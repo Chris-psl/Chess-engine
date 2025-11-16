@@ -84,7 +84,7 @@ void updateCastlingRights(BoardState& board, const Move& move) {
 // Function that updates the castling rights and en passant square after a move
 void updateGameState(BoardState& board, const Move& move) {
     updateCastlingRights(board, move);
-    //updateEnPassantSquare(board, move);
+    updateEnPassantSquare(board, move);
 }
 
 // Function that applies a move to the board state
@@ -449,7 +449,7 @@ void applyMove(BoardState& board, const Move& move) {
     }
 
     // === 7) Game-state bookkeeping (EP square, castling rights, clocks) ===
-    updateGameState(board, move);
+    //updateGameState(board, move);
 
     // === Zobrist: XOR in new castling & new en-passant keys after updateGameState ===
     int newCastlingMask = castlingMask(board.castlingRights);

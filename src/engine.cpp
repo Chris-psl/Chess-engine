@@ -123,6 +123,8 @@ std::string engine(std::string command, std::string fenInput, BoardState& board)
         for (const auto& m : moves.moves) {
             futures.push_back(pool.enqueue([board, m]() -> std::pair<Move,int> {
                 BoardState newBoard = board;
+
+                updateGameState(newBoard, m);
                 applyMove(newBoard, m);
 
                 if (!isLegalMoveState(newBoard)) {

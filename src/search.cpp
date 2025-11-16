@@ -41,7 +41,7 @@ int quiescence(BoardState& board, int alpha, int beta) {
     for (const auto& move : captureMoves.moves) {
         BoardState newBoard = board;
 
-        updateEnPassantSquare(newBoard, move);
+        updateGameState(newBoard, move);
         applyMove(newBoard, move);
 
         int score = -quiescence(newBoard, -beta, -alpha); // negamax-style symmetry
@@ -156,7 +156,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
         for (const auto& move : moves.moves) {
             BoardState newBoard = board;
 
-            updateEnPassantSquare(newBoard, move);
+            updateGameState(newBoard, move);
             applyMove(newBoard, move);
 
             if (!isLegalMoveState(newBoard)) {
@@ -179,7 +179,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
         for (const auto& move : moves.moves) {
             BoardState newBoard = board;
 
-            updateEnPassantSquare(newBoard, move);
+            updateGameState(newBoard, move);
             applyMove(newBoard, move);
 
             if (!isLegalMoveState(newBoard)) {
@@ -302,7 +302,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
             BoardState newBoard = board;
 
             // Apply move to newBoard
-            updateEnPassantSquare(newBoard, move);
+            updateGameState(board, move);
             applyMove(newBoard, move);
 
             // Recursively call minimax
@@ -317,7 +317,7 @@ int minimax(BoardState& board, int depth, int alpha, int beta, bool isMaximizing
             BoardState newBoard = board; 
 
             // Apply move to newBoard
-            updateEnPassantSquare(newBoard, move);
+            updateGameState(board, move);
             applyMove(newBoard, move);
 
             // Recursively call minimax
