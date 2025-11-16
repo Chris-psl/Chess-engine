@@ -528,13 +528,6 @@ bool isLegalMoveState(const BoardState& board) {
         if (pawnAttacksTo(/*attackerIsWhite=*/true, kingSq) & oppPawns) return false;
     }
 
-    // Alternative simpler check (commented out)
-    // if (white) {
-    //     if (blackPawnAttacks[kingSq + 16] & oppPawns) return false;
-    // } else {
-    //     if (whitePawnAttacks[kingSq - 16] & oppPawns) return false;
-    // }
-
     if (knightAttacks[kingSq] & oppKnights) return false;
     if (bishopAttacks(kingSq, allPieces) & (oppBishops | oppQueens)) return false;
     if (rookAttacks(kingSq, allPieces) & (oppRooks | oppQueens)) return false;
